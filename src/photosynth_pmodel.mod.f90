@@ -26,25 +26,24 @@ module md_photosynth
     real :: xi                  ! relative cost parameter, Eq. 9 in Stocker et al., 2019 GMD
     real :: iwue                ! intrinsic water use efficiency = A / gs = ca - ci = ca ( 1 - chi ) , unitless
     real :: lue                 ! light use efficiency (mol CO2 / mol photon)
-    ! real :: assim               ! leaf-level assimilation rate (mol CO2 m-2 s-1)
     real :: gs_setpoint         ! stomatal conductance to CO2 (mol C Pa-1 m-2 s-1)
-    ! real :: gs_unitfapar        ! stomatal conductance to CO2 per unit fapar (mol C Pa-1 m-2 s-1)
-    ! real :: gs_unitiabs         ! stomatal conductance to CO2 per unit absorbed light (mol C Pa-1 m-2 s-1)
-    ! real :: gpp                 ! gross primary productivity (g CO2 m-2 d-1)
     ! real :: vcmax               ! canopy-level maximum carboxylation capacity per unit ground area (mol CO2 m-2 s-1)
+    ! real :: jmax                ! canopy-level maximum rate of electron transport (mol m-2 s-1)
     real :: jmax25              ! canopy-level maximum rate of electron transport, normalized to 25 deg C (mol m-2 s-1)
     real :: vcmax25             ! canopy-level Vcmax25 (Vcmax normalized to 25 deg C) (mol CO2 m-2 s-1)
-    ! real :: vcmax_unitfapar     ! Vcmax per unit fAPAR (mol CO2 m-2 s-1)
     ! real :: vcmax_unitiabs      ! Vcmax per unit absorbed light (mol CO2 m-2 s-1 mol-1)
+    real :: vcmax25_unitiabs    ! Vcmax25 per unit absorbed light (mol CO2 m-2 s-1 mol-1)
     ! real :: ftemp_inst_vcmax    ! Instantaneous temperature response factor of Vcmax (unitless)
     ! real :: ftemp_inst_rd       ! Instantaneous temperature response factor of Rd (unitless)
     ! real :: rd                  ! Dark respiration (mol CO2 m-2 s-1)
     ! real :: rd_unitfapar        ! Dark respiration per unit fAPAR (mol CO2 m-2 s-1)
     ! real :: rd_unitiabs         ! Dark respiration per unit absorbed light (mol CO2 m-2 s-1)
-    real :: actnv               ! Canopy-level total metabolic leaf N per unit ground area (g N m-2)
-    real :: actnv_unitfapar     ! Metabolic leaf N per unit fAPAR (g N m-2)
-    real :: actnv_unitiabs      ! Metabolic leaf N per unit absorbed light (g N m-2 mol-1)
+    ! real :: rd25                ! Dark respiration at 25 deg C (mol CO2 m-2 s-1)
+    ! real :: rd25_unitiabs       ! Dark respiration at 25 deg C per unit absorbed light (mol CO2 m-2 s-1)
+    ! real :: actnv               ! Canopy-level total metabolic leaf N per unit ground area (g N m-2)
+    ! real :: actnv_unitiabs      ! Metabolic leaf N per unit absorbed light (g N m-2 mol-1)
     ! real :: transp              ! Canopy-level total transpiration rate (g H2O (mol photons)-1)
+    real :: asat                ! Light-saturated assimilation rate (mol CO2 m-2 s-1)
   end type outtype_pmodel
 
 
@@ -96,13 +95,10 @@ contains
     type(outtype_pmodel) :: out_pmodel
 
     ! local variables
-    ! real :: iabs                ! absorbed photosynthetically active radiation (mol/m2)
     real :: kmm                 ! Michaelis-Menten coefficient (Pa)
     real :: gammastar           ! photorespiratory compensation point - Gamma-star (Pa)
     real :: ca                  ! ambient CO2 partial pressure, (Pa)
     real :: gs_setpoint         ! stomatal conductance to CO2 (mol CO2 Pa-1 m-2 s-1)
-    ! real :: gs_unitfapar        ! stomatal conductance to CO2 (mol CO2 Pa-1 m-2 s-1)
-    ! real :: gs_unitiabs         ! stomatal conductance to CO2 (mol CO2 Pa-1 m-2 s-1)
     real :: ci                  ! leaf-internal partial pressure, (Pa)
     real :: chi                 ! = ci/ca, leaf-internal to ambient CO2 partial pressure, ci/ca (unitless)
     real :: xi = 0              ! relative cost parameter, Eq. 9 in Stocker et al., 2019
@@ -118,20 +114,17 @@ contains
     real :: vcmax               ! canopy-level maximum carboxylation capacity per unit ground area (mol CO2 m-2 s-1)
     real :: vcmax25             ! canopy-level Vcmax25 (Vcmax normalized to 25 deg C) (mol CO2 m-2 s-1)
     real :: vcmax_star          ! 
-    ! real :: vcmax_unitfapar     ! Vcmax per unit fAPAR (mol CO2 m-2 s-1)
-    ! real :: vcmax25_unitfapar   ! Vcmax25 per unit fAPAR (mol CO2 m-2 s-1)
-    ! real :: vcmax_unitiabs      ! Vcmax per unit absorbed light (mol CO2 m-2 s-1 mol-1)
-    ! real :: vcmax25_unitiabs    ! Vcmax25 per unit absorbed light (mol CO2 m-2 s-1 mol-1)
+    real :: vcmax_unitiabs      ! Vcmax per unit absorbed light (mol CO2 m-2 s-1 mol-1)
+    real :: vcmax25_unitiabs    ! Vcmax25 per unit absorbed light (mol CO2 m-2 s-1 mol-1)
     real :: ftemp_inst_vcmax    ! Instantaneous temperature response factor of Vcmax (unitless)
     real :: ftemp_inst_jmax     ! Instantaneous temperature response factor of Jmax (unitless)
-    ! real :: rd                  ! Dark respiration (mol CO2 m-2 s-1)
-    ! real :: rd_unitfapar        ! Dark respiration per unit fAPAR (mol CO2 m-2 s-1)
-    ! real :: rd_unitiabs         ! Dark respiration per unit absorbed light (mol CO2 m-2 s-1)
-    real :: actnv               ! Canopy-level total metabolic leaf N per unit ground area (g N m-2)
-    ! real :: actnv_unitfapar     ! Metabolic leaf N per unit fAPAR (g N m-2)
+    real :: rd                  ! Dark respiration (mol CO2 m-2 s-1)
+    real :: rd_unitiabs         ! Dark respiration per unit absorbed light (mol CO2 m-2 s-1)
+    ! real :: actnv               ! Canopy-level total metabolic leaf N per unit ground area (g N m-2)
     ! real :: actnv_unitiabs      ! Metabolic leaf N per unit absorbed light (g N m-2 mol-1)
-    ! real :: transp              ! Canopy-level total transpiration rate (g H2O (mol photons)-1)
     real :: fact_jmaxlim        ! Jmax limitation factor (unitless)
+    ! real :: transp              ! Canopy-level total transpiration rate (g H2O (mol photons)-1)
+    real :: asat                ! Light-saturated assimilation rate (mol CO2 m-2 s-1)
 
     ! local variables for Jmax limitation following Nick Smith's method
     real :: omega, omega_star, vcmax_unitiabs_star, tcref, jmax_over_vcmax, jmax_prime
@@ -231,6 +224,8 @@ contains
       ! Vcmax after accounting for Jmax limitation
       vcmax = kphio  * ppfd * out_optchi%mjoc * mprime / out_optchi%mj
 
+      ! Vcmax per unit aborbed light
+      vcmax_unitiabs = kphio * out_optchi%mjoc * mprime / out_optchi%mj
 
     else if (method_jmaxlim == "wang17") then
 
@@ -243,13 +238,18 @@ contains
       ! Vcmax after accounting for Jmax limitation
       vcmax = kphio * ppfd * out_optchi%mjoc * mprime / out_optchi%mj
 
-      ! xxx test
-      ! print*,'out_optchi%mjoc : ', out_optchi%mjoc 
-      ! print*,'mprime          : ', mprime
-      ! print*,'out_optchi%mj   : ', out_optchi%mj
-      ! stop 
+      ! Vcmax per unit aborbed light
+      vcmax_unitiabs = kphio * out_optchi%mjoc * mprime / out_optchi%mj
 
-    else if (method_jmaxlim=="smith19") then
+      ! ! xxx debug
+      ! print*,'kphio           : ', kphio
+      ! print*,'mprime          : ', mprime
+      ! print*,'c_molmass       : ', c_molmass
+      ! print*,'out_optchi%mj   : ', out_optchi%mj
+      ! ! print*,'out_optchi%mjoc : ', out_optchi%mjoc 
+      ! ! stop 
+
+    else if (method_jmaxlim == "smith19") then
 
       ! mc = (ci - gammastar) / (ci + kmm)                       ! Eq. 6
       ! print(paste("mc should be equal: ", mc, out_optchi%mc ) )
@@ -281,14 +281,20 @@ contains
       ! light use efficiency
       lue = c_molmass * kphio * out_optchi%mj * omega_star / (8.0 * theta) ! * calc_ftemp_inst_vcmax( tc, tc, tcref = tcref )     ! treat theta as a calibratable parameter
 
+      ! Vcmax per unit aborbed light
+      vcmax_unitiabs = vcmax / ppfd
 
-    else if (method_jmaxlim=="none") then
+
+    else if (method_jmaxlim == "none") then
 
       ! Light use efficiency (gpp per unit absorbed light)
       lue = kphio * out_optchi%mj * c_molmass
 
       ! Vcmax normalised per unit absorbed PPFD (assuming iabs=1), with Jmax limitation
       vcmax = kphio * ppfd * out_optchi%mjoc
+
+      ! Vcmax per unit aborbed light
+      vcmax_unitiabs = kphio * out_optchi%mjoc
 
     else
 
@@ -312,19 +318,27 @@ contains
     ! print*,'kphio ', kphio
 
     !-----------------------------------------------------------------------
-    ! Corrolary preditions (This is prelimirary!)
+    ! Scale to 25 deg C
     !-----------------------------------------------------------------------
     ! Vcmax25 (vcmax normalized to 25 deg C)
     ftemp_inst_vcmax  = calc_ftemp_inst_vcmax( tc, tc, tcref = 25.0 )
     vcmax25  = vcmax / ftemp_inst_vcmax
 
-    ! ! Dark respiration at growth temperature
-    ! ftemp_inst_rd = calc_ftemp_inst_rd( tc )
-    ! rd  = params_gpp%rd_to_vcmax * (ftemp_inst_rd / ftemp_inst_vcmax) * vcmax 
+    ! Vcmax25 per unit absorbed light
+    vcmax25_unitiabs = vcmax_unitiabs / ftemp_inst_vcmax
 
-    ! active metabolic leaf N (canopy-level), mol N/m2-ground (same equations as for nitrogen content per unit leaf area, gN/m2-leaf)
-    actnv  = vcmax25 * n_v
+    ! !-----------------------------------------------------------------------
+    ! ! Leaf metabolic N content
+    ! !-----------------------------------------------------------------------
+    ! ! active metabolic leaf N (canopy-level), mol N/m2-ground (same equations as for nitrogen content per unit leaf area, gN/m2-leaf)
+    ! actnv  = vcmax25 * n_v
 
+    ! ! active metabolic leaf N per unit absorbed light
+    ! actnv_unitiabs = vcmax25_unitiabs * n_v
+
+    !-----------------------------------------------------------------------
+    ! Check for consistency with classic FvCB equations
+    !-----------------------------------------------------------------------
     ! Derive Jmax using again A_J = A_C
     if (ppfd==0.0) then
       fact_jmaxlim = 1.0
@@ -343,7 +357,9 @@ contains
       jmax25  = jmax  / ftemp_inst_jmax
     end if
 
+    !-----------------------------------------------------------------------
     ! stomatal conductance to CO2, expressed per unit absorbed light
+    !-----------------------------------------------------------------------
     if (c4) then
       ! xxx to be addressed: what's the stomatal conductance in C4?
       gs_setpoint = 9999.0
@@ -351,138 +367,32 @@ contains
       gs_setpoint = (lue / c_molmass) / ( ca - ci + 0.1 )
     end if
 
-
-    ! if (ppfd /= dummy) then
-    !   !-----------------------------------------------------------------------
-    !   ! Calculate quantities scaling with light assuming fAPAR = 1
-    !   ! representing leaf-level at the top of the canopy.
-    !   !-----------------------------------------------------------------------
-    !   ! ! leaf-level assimilation rate
-    !   ! assim = lue * ppfd
-
-    !   ! ! Transpiration (E)
-    !   ! transp = 1.6 * gs * vpd
-
-    !   ! Vcmax normalised per unit fAPAR (assuming fAPAR=1)
-    !   vcmax_unitfapar = ppfd * vcmax_unitiabs
-
-    !   ! Vcmax25 (vcmax normalized to 25 deg C)
-    !   vcmax25_unitfapar = ppfd * vcmax25_unitiabs
-
-    !   ! ! Dark respiration per unit fAPAR (assuming fAPAR=1)
-    !   ! rd_unitfapar = ppfd * rd_unitiabs
-
-    !   ! active metabolic leaf N (canopy-level), mol N/m2-ground (same equations as for nitrogen content per unit leaf area, gN/m2-leaf)
-    !   actnv_unitfapar = ppfd * actnv_unitiabs
-
-    !   ! stomatal conductance to CO2, expressed per unit absorbed fAPAR
-    !   gs_unitfapar = ppfd * gs_unitiabs
-
-
-    !   if (fapar /= dummy) then
-    !     !-----------------------------------------------------------------------
-    !     ! Calculate quantities scaling with absorbed light
-    !     !-----------------------------------------------------------------------
-    !     ! absorbed photosynthetically active radiation (mol/m2)
-    !     iabs = fapar * ppfd 
-
-    !     ! XXX PMODEL_TEST: ok
-    !     ! print*,'iabs ', iabs
-
-    !     ! Canopy-level quantities 
-    !     ! Defined per unit ground level -> scaling with aborbed light (iabs)
-    !     !-----------------------------------------------------------------------
-    !     ! Gross primary productivity
-    !     gpp = iabs * lue ! in g C m-2 s-1
-
-    !     ! ! XXX PMODEL_TEST: ok
-    !     ! print*,'gpp ', gpp
-
-    !     ! Vcmax per unit ground area is the product of the intrinsic quantum 
-    !     ! efficiency, the absorbed PAR, and 'n'
-    !     vcmax = iabs * vcmax_unitiabs  ! = iabs * kphio * n 
-
-    !     ! ! XXX PMODEL_TEST: ok
-    !     ! print*,'vcmax ', vcmax
-
-    !     ! (vcmax normalized to 25 deg C)
-    !     vcmax25 = iabs * vcmax25_unitiabs  ! = factor25_vcmax * vcmax
-
-    !     ! ! XXX PMODEL_TEST: ok
-    !     !print*,'vcmax25 ', vcmax25
-    !     !print*,'vcmax25 ', vcmax25_unitiabs
-    !     ! Dark respiration
-    !     ! rd = iabs * rd_unitiabs ! = rd_to_vcmax * vcmax
-
-    !     ! ! XXX PMODEL_TEST: ok
-    !     ! print*,'rd ', rd
-
-    !     ! active metabolic leaf N (canopy-level), mol N/m2-ground (same equations as for nitrogen content per unit leaf area, gN/m2-leaf)
-    !     actnv = iabs * actnv_unitiabs ! = vcmax25 * n_v
-
-    !     ! stomatal conductance to CO2
-    !     gs = iabs * gs_unitiabs
-
-    !     ! xxx text here we have ignored gs_test, otherwise it will cause FPE
-    !     !gs_test = (gpp / c_molmass) / (ca - ci)
-    !     ! print*,'pmodel(): gs, gs_test ', gs, gs_test
-
-
-
-    !   else
-
-    !     ! gpp     = dummy
-    !     ! vcmax   = dummy
-    !     vcmax25 = dummy
-    !     ! rd      = dummy
-    !     ! actnv   = dummy
-    !     jmax    = dummy
-
-    !   end if
-
-    ! else
-
-    !   ! vcmax_unitfapar   = dummy
-    !   vcmax25_unitfapar = dummy
-    !   ! rd_unitfapar      = dummy
-    !   ! actnv_unitfapar   = dummy
-      
-    !   ! gpp               = dummy
-    !   vcmax             = dummy
-    !   vcmax25           = dummy
-    !   ! rd                = dummy
-    !   ! actnv             = dummy
-    !   jmax              = dummy
-
-    ! end if
+    !-----------------------------------------------------------------------
+    ! Asat: light-saturated assimilation rate (taking 100 x PPFD)
+    !-----------------------------------------------------------------------
+    if (ppfd > 0.0) then
+      fact_jmaxlim = vcmax * (ci + 2.0 * gammastar) / (kphio * (100.0 * ppfd) * (ci + kmm))
+      asat = kphio * (100.0 * ppfd) * out_optchi%mj * fact_jmaxlim
+    else
+      asat = dummy
+    end if
 
     ! construct list for output
-    out_pmodel%gammastar        = gammastar
-    out_pmodel%kmm              = kmm
-    out_pmodel%ca               = ca
-    out_pmodel%ci               = ci
-    out_pmodel%chi              = chi
-    out_pmodel%xi               = out_optchi%xi
-    out_pmodel%iwue             = iwue
-    out_pmodel%lue              = lue
-    ! out_pmodel%gpp              = gpp
-    ! out_pmodel%vcmax            = vcmax
-    ! out_pmodel%jmax             = jmax
-    out_pmodel%vcmax25          = vcmax25
-    out_pmodel%jmax25           = jmax25
-    ! out_pmodel%vcmax_unitfapar  = vcmax_unitfapar
-    ! out_pmodel%vcmax_unitiabs   = vcmax_unitiabs
-    ! out_pmodel%ftemp_inst_vcmax = ftemp_inst_vcmax
-    ! out_pmodel%ftemp_inst_jmax    = ftemp_inst_jmax
-    ! out_pmodel%rd               = rd
-    ! out_pmodel%rd_unitfapar     = rd_unitfapar
-    ! out_pmodel%rd_unitiabs      = rd_unitiabs
-    out_pmodel%actnv            = actnv
-    ! out_pmodel%actnv_unitfapar  = actnv_unitfapar
-    ! out_pmodel%actnv_unitiabs   = actnv_unitiabs
-    ! out_pmodel%gs_unitiabs      = gs_unitiabs
-    ! out_pmodel%gs_unitfapar     = gs_unitfapar
-    out_pmodel%gs_setpoint      = gs_setpoint
+    out_pmodel%gammastar           = gammastar
+    out_pmodel%kmm                 = kmm
+    out_pmodel%ca                  = ca
+    out_pmodel%ci                  = ci
+    out_pmodel%chi                 = chi
+    out_pmodel%xi                  = out_optchi%xi
+    out_pmodel%iwue                = iwue
+    out_pmodel%lue                 = lue
+    out_pmodel%gs_setpoint         = gs_setpoint
+    out_pmodel%jmax25              = jmax25
+    out_pmodel%vcmax25             = vcmax25
+    out_pmodel%vcmax25_unitiabs    = vcmax25_unitiabs
+    out_pmodel%asat                = asat
+    ! out_pmodel%actnv               = actnv
+    ! out_pmodel%actnv_unitiabs      = actnv_unitiabs
 
   end function pmodel
 
@@ -494,32 +404,20 @@ contains
     ! function return value
     type(outtype_pmodel) :: out_pmodel
 
-    out_pmodel%gammastar        = 0.0
-    out_pmodel%kmm              = 0.0
-    out_pmodel%ca               = 0.0
-    out_pmodel%ci               = 0.0
-    out_pmodel%chi              = 0.0
-    out_pmodel%xi               = 0.0
-    out_pmodel%iwue             = 0.0
-    out_pmodel%lue              = 0.0
-    ! out_pmodel%gpp              = 0.0
-    ! out_pmodel%vcmax            = 0.0
-    ! out_pmodel%jmax             = 0.0
-    out_pmodel%vcmax25          = 0.0
-    out_pmodel%jmax25           = 0.0
-    ! out_pmodel%vcmax_unitfapar  = 0.0
-    ! out_pmodel%vcmax_unitiabs   = 0.0
-    ! out_pmodel%ftemp_inst_vcmax = 0.0
-    ! out_pmodel%ftemp_inst_rd    = 0.0
-    ! out_pmodel%rd               = 0.0
-    ! out_pmodel%rd_unitfapar     = 0.0
-    ! out_pmodel%rd_unitiabs      = 0.0
-    out_pmodel%actnv            = 0.0
-    ! out_pmodel%actnv_unitfapar  = 0.0
-    ! out_pmodel%actnv_unitiabs   = 0.0
-    ! out_pmodel%gs_unitiabs      = 0.0
-    ! out_pmodel%gs_unitfapar     = 0.0
-    out_pmodel%gs_setpoint      = 0.0
+    out_pmodel%gammastar           = 0.0
+    out_pmodel%kmm                 = 0.0
+    out_pmodel%ca                  = 0.0
+    out_pmodel%ci                  = 0.0
+    out_pmodel%chi                 = 0.0
+    out_pmodel%xi                  = 0.0
+    out_pmodel%iwue                = 0.0
+    out_pmodel%lue                 = 0.0
+    out_pmodel%gs_setpoint         = 0.0
+    out_pmodel%jmax25              = 0.0
+    out_pmodel%vcmax25             = 0.0
+    out_pmodel%vcmax25_unitiabs    = 0.0
+    ! out_pmodel%actnv               = 0.0
+    ! out_pmodel%actnv_unitiabs      = 0.0
 
   end function zero_pmodel
 
@@ -628,7 +526,7 @@ contains
     if (mprime > 0) then
       mprime = sqrt(mprime)
     else
-      ! print*,'negative mprime (', mprime, '). Setting to zero.'
+      print*,'negative mprime (', mprime, '). Setting to zero.'
       mprime = 0.0
     end if 
     

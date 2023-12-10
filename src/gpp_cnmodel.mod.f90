@@ -1,13 +1,13 @@
-module md_gpp_pmodel
+module md_gpp_cnmodel
   !////////////////////////////////////////////////////////////////
   ! Module containing a wrapper for using the P-model photosynthesis
-  ! scheme in the P-model setup.
+  ! scheme in the CN-model setup.
   !----------------------------------------------------------------
   use md_params_core, only: nmonth, npft, nlu, c_molmass, h2o_molmass, maxgrid, ndayyear, kTkelvin, dummy
-  use md_tile_pmodel, only: tile_type, tile_fluxes_type
-  use md_interface_pmodel, only: myinterface
-  use md_forcing_pmodel, only: climate_type, vegcover_type
-  use md_plant_pmodel, only: params_pft_plant
+  use md_tile_cnmodel, only: tile_type, tile_fluxes_type
+  use md_interface_cnmodel, only: myinterface
+  use md_forcing_cnmodel, only: climate_type, vegcover_type
+  use md_plant_cnmodel, only: params_pft_plant
   use md_sofunutils, only: radians
   use md_grid, only: gridtype
   use md_photosynth, only: pmodel, zero_pmodel, outtype_pmodel, calc_ftemp_inst_vcmax, calc_ftemp_inst_jmax, &
@@ -16,7 +16,7 @@ module md_gpp_pmodel
   implicit none
 
   private
-  public params_pft_gpp, gpp, getpar_modl_gpp
+  public params_pft_gpp, params_gpp, gpp, getpar_modl_gpp !, calc_dgpp, calc_drd
     
   !-----------------------------------------------------------------------
   ! Uncertain (unknown) parameters. Runtime read-in
@@ -49,7 +49,7 @@ module md_gpp_pmodel
 
 contains
 
-  subroutine gpp( tile, tile_fluxes, co2, climate, vegcover, grid, init, in_ppfd)
+  subroutine gpp( tile, tile_fluxes, co2, climate, vegcover, grid, init, in_ppfd )
     !//////////////////////////////////////////////////////////////////
     ! Wrapper function to call to P-model. 
     ! Calculates meteorological conditions with memory based on daily
@@ -80,6 +80,11 @@ contains
     real       :: kphio_temp          ! quantum yield efficiency after temperature influence
     real       :: tk
 
+    logical, save :: firstcall = .true.
+    real, dimension(nlu,npft,ndayyear+1), save :: actnv_unitfapar_vec
+
+    logical, parameter :: verbose = .false.
+
     real, save :: co2_memory
     real, save :: vpd_memory
     real, save :: temp_memory
@@ -97,7 +102,6 @@ contains
     ! which photosynthesis is acclimated to (daytime mean, or mid-day
     ! mean) 
     !----------------------------------------------------------------
-    ! climate_acclimation = calc_climate_acclimation( climate, grid, "daytime" )
     climate_acclimation = climate
 
     !----------------------------------------------------------------
@@ -213,17 +217,37 @@ contains
         * myinterface%params_siml%secs_per_tstep
 
       !----------------------------------------------------------------
-      ! Vcmax and Jmax
+      ! Vcmax, Jmax, and Asat
       !----------------------------------------------------------------
       ! acclimated quantities
       tile_fluxes(lu)%plant(pft)%vcmax25 = out_pmodel%vcmax25
       tile_fluxes(lu)%plant(pft)%jmax25  = out_pmodel%jmax25
       tile_fluxes(lu)%plant(pft)%chi     = out_pmodel%chi
       tile_fluxes(lu)%plant(pft)%iwue    = out_pmodel%iwue
+      tile_fluxes(lu)%plant(pft)%asat    = out_pmodel%asat
 
       ! quantities with instantaneous temperature response
       tile_fluxes(lu)%plant(pft)%vcmax = calc_ftemp_inst_vcmax( climate%dtemp, climate%dtemp, tcref = 25.0 ) * out_pmodel%vcmax25
       tile_fluxes(lu)%plant(pft)%jmax  = calc_ftemp_inst_jmax(  climate%dtemp, climate%dtemp, tcref = 25.0 ) * out_pmodel%jmax25
+
+      !----------------------------------------------------------------
+      ! Save quantities used for allocation
+      !----------------------------------------------------------------
+      ! take maximum metabolic leaf N per unit absorbed light of the past 'len' P-model calls
+      if (firstcall) then
+        actnv_unitfapar_vec(lu,pft,:) = out_pmodel%vcmax25_unitiabs &
+                                        * climate_acclimation%dppfd / tile_fluxes(:)%canopy%dayl &
+                                        * params_pft_plant(pft)%nv_vcmax25
+        if (pft == npft .and. lu == nlu) firstcall = .false.
+      else
+        actnv_unitfapar_vec(lu,pft,1:(ndayyear+1-1)) = actnv_unitfapar_vec(lu,pft,2:(ndayyear+1))
+        actnv_unitfapar_vec(lu,pft,(ndayyear+1)) = out_pmodel%vcmax25_unitiabs &
+                                                   * climate_acclimation%dppfd / tile_fluxes(:)%canopy%dayl &
+                                                   * params_pft_plant(pft)%nv_vcmax25
+      end if
+      tile(lu)%plant(pft)%actnv_unitfapar          = maxval(actnv_unitfapar_vec(lu,pft,:))
+      tile_fluxes(lu)%plant(pft)%lue               = out_pmodel%lue
+      tile_fluxes(lu)%plant(pft)%vcmax25_unitfapar = out_pmodel%vcmax25_unitiabs * climate_acclimation%dppfd
 
       !----------------------------------------------------------------
       ! Stomatal conductance
@@ -233,7 +257,6 @@ contains
     end do pftloop
 
   end subroutine gpp
-
 
 
   ! function calc_dgpp( fapar, fpc_grid, dppfd, lue, kphio_temp, soilmstress ) result( my_dgpp )
@@ -526,4 +549,4 @@ contains
   end subroutine getpar_modl_gpp
 
 
-end module md_gpp_pmodel
+end module md_gpp_cnmodel

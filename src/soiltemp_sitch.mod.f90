@@ -21,26 +21,27 @@ module md_soiltemp
 
 contains
 
-  subroutine soiltemp( soil, dtemp, moy, doy ) 
+  subroutine soiltemp( tile, dtemp, moy, doy, init ) 
     !/////////////////////////////////////////////////////////////////////////
     ! Calculates soil temperature based on.
     !-------------------------------------------------------------------------
     use md_params_core, only: ndayyear, nlu, ndaymonth, pi
     use md_sofunutils, only: running
     ! use md_sofunutils, only: daily2monthly
-    use md_tile_pmodel, only: soil_type
-    use md_interface_pmodel, only: myinterface
+    use md_tile_cnmodel, only: tile_type
+    use md_interface_cnmodel, only: myinterface
 
     ! arguments
-    type( soil_type ), dimension(nlu), intent(inout) :: soil
-    real, dimension(ndayyear), intent(in)            :: dtemp        ! daily temperature (deg C)
-    integer, intent(in)                              :: moy        ! current month of year
-    integer, intent(in)                              :: doy        ! current day of year
+    type(tile_type), dimension(nlu), intent(inout)     :: tile
+    real, dimension(ndayyear), intent(in)              :: dtemp
+    integer, intent(in)                                :: moy
+    integer, intent(in)                                :: doy
+    logical, intent(in)                                :: init
 
     ! local variables
-    real, dimension(:),   allocatable, save   :: dtemp_pvy    ! daily temperature of previous year (deg C)
-    real, dimension(:,:), allocatable, save   :: wscal_pvy    ! daily Cramer-Prentice-Alpha of previous year (unitless) 
-    real, dimension(:,:), allocatable, save   :: wscal_alldays
+    real, dimension(ndayyear), save  :: dtemp_pvy       ! daily temperature of previous year (deg C)
+    real, dimension(nlu,ndayyear), save :: wscal_pvy    ! daily Cramer-Prentice-Alpha of previous year (unitless) 
+    real, dimension(nlu,ndayyear), save :: wscal_alldays
 
     !real, dimension(ndayyear), save :: dtemp_buf        ! daily temperature vector containing values of the present day and the preceeding 364 days. Updated daily. (deg C)
     !real, dimension(ndayyear), save :: dwtot_buf        ! daily soil moisture content, containing values of the present day and the preceeding 364 days. Updated daily
@@ -53,16 +54,13 @@ contains
     real :: alag, amp, lag, lagtemp
 
     ! in first year, use this years air temperature (available for all days in this year)
-    if ( myinterface%steering%init .and. doy==1 ) then
-      if (.not.allocated(dtemp_pvy    )) allocate( dtemp_pvy(ndayyear) )
-      if (.not.allocated(wscal_pvy    )) allocate( wscal_pvy(nlu,ndayyear) )
-      if (.not.allocated(wscal_alldays)) allocate( wscal_alldays(nlu,ndayyear) )
+    if ( init ) then
       dtemp_pvy(:) = dtemp(:)
     end if
 
-    wscal_alldays(:,doy) = soil(:)%phy%wscal
+    wscal_alldays(:,doy) = tile(:)%soil%phy%wscal
 
-    avetemp = running( dtemp, doy, ndayyear, ndayyear, "mean", dtemp_pvy(:) ) 
+    avetemp = running( dtemp(:), doy, ndayyear, ndayyear, "mean", dtemp_pvy(:) ) 
 
     ! get monthly mean temperature vector from daily vector
     !mtemp     = daily2monthly( dtemp,     "mean" )
@@ -79,9 +77,8 @@ contains
       pm = moy - 1
       ppm = moy - 2
     end if
-    tempthismonth = running( dtemp, doy, ndayyear, ndaymonth(pm), "mean", dtemp_pvy(:))
+    tempthismonth = running( dtemp(:), doy, ndayyear, ndaymonth(pm), "mean", dtemp_pvy(:))
     templastmonth = running( dtemp, modulo( doy - ndaymonth(pm), ndayyear ), ndayyear, ndaymonth(ppm), "mean", dtemp_pvy(:))
-
 
     do lu=1,nlu
       !-------------------------------------------------------------------------
@@ -96,19 +93,18 @@ contains
       end if
 
       ! In case of zero soil water, return with soil temp = air temp
-      if (meanw1==0.0) then
-        soil(lu)%phy%temp = dtemp(doy)
-        ! dtemp_soil(lu,jpngr) = dtemp(doy)
+      if (meanw1 == 0.0) then
+        tile(lu)%soil%phy%temp = dtemp(doy)
         return
       endif
 
       ! Interpolate thermal diffusivity function against soil water content
-      if (meanw1<0.15) then
-        diffus = ( soil(lu)%params%thdiff_whc15 - soil(lu)%params%thdiff_wp ) / 0.15 &
-                  * meanw1 + soil(lu)%params%thdiff_wp
+      if (meanw1 < 0.15) then
+        diffus = ( tile(lu)%soil%params%thdiff_whc15 - tile(lu)%soil%params%thdiff_wp ) / 0.15 &
+                  * meanw1 + tile(lu)%soil%params%thdiff_wp
       else
-        diffus = ( soil(lu)%params%thdiff_fc - soil(lu)%params%thdiff_whc15 ) / 0.85 &
-                  * ( meanw1 - 0.15 ) + soil(lu)%params%thdiff_whc15
+        diffus = ( tile(lu)%soil%params%thdiff_fc - tile(lu)%soil%params%thdiff_whc15 ) / 0.85 &
+                  * ( meanw1 - 0.15 ) + tile(lu)%soil%params%thdiff_whc15
       endif
           
       ! Convert diffusivity from mm2/s to m2/month
@@ -128,13 +124,12 @@ contains
       lagtemp = ( tempthismonth - templastmonth ) * ( 1.0 - lag ) + templastmonth
           
       ! Adjust amplitude of lagged air temp to give estimated soil temp
-      ! dtemp_soil(lu,jpngr) = avetemp + amp * ( lagtemp - avetemp )
-      soil(lu)%phy%temp = avetemp + amp * ( lagtemp - avetemp )
+      tile(lu)%soil%phy%temp = avetemp + amp * ( lagtemp - avetemp )
 
     end do
 
     ! save temperature for next year
-    if (doy==ndayyear) then
+    if (doy == ndayyear) then
       dtemp_pvy(:) = dtemp(:)
       wscal_pvy(:,:) = wscal_alldays(:,:)
     end if

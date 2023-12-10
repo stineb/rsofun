@@ -6,14 +6,13 @@ module md_biosphere_pmodel
   !----------------------------------------------------------------
   use md_params_core
   use md_classdefs
-  use md_waterbal, only: waterbal, solar, getpar_modl_waterbal
+  use md_waterbal_pmodel, only: waterbal, solar, getpar_modl_waterbal
   use md_gpp_pmodel, only: getpar_modl_gpp, gpp
   use md_vegdynamics_pmodel, only: vegdynamics
   use md_tile_pmodel, only: tile_type, tile_fluxes_type, initglobal_tile, initdaily_tile_fluxes, &
     getpar_modl_tile, diag_daily, diag_annual, init_annual
   use md_plant_pmodel, only: getpar_modl_plant
   use md_sofunutils, only: calc_patm
-  use md_soiltemp, only: soiltemp
 
   implicit none
 
@@ -153,18 +152,6 @@ contains
                         myinterface%climate(doy) &
                         )
         ! if (verbose) print*,'... done'
-
-        !----------------------------------------------------------------
-        ! calculate soil temperature
-        !----------------------------------------------------------------
-        ! if (verbose) print*, 'calling soiltemp() ... '
-        call soiltemp(&
-                      tile(:)%soil, &
-                      myinterface%climate(:)%dtemp, &
-                      moy, & 
-                      doy & 
-                      )
-        ! if (verbose) print*, '... done'
 
         !----------------------------------------------------------------
         ! daily diagnostics (e.g., sum over plant within canopy)

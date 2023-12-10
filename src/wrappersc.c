@@ -108,6 +108,110 @@ extern SEXP pmodel_f_C(
 }
 
 /////////////////////////////////////////////////////////////
+// CN-model
+/////////////////////////////////////////////////////////////
+void F77_NAME(cnmodel_f)(
+    int    *c_only,
+    int    *spinup, // LOGICAL can be defined as _Bool but it gives a warning  
+    int    *spinupyears,
+    int    *recycle,
+    int    *firstyeartrend,
+    int    *nyeartrend,
+    int    *secs_per_tstep,
+    int    *in_ppfd,
+    int    *in_netrad,
+    int    *outdt,
+    int    *ltre,
+    int    *ltne,
+    int    *ltrd,
+    int    *ltnd,
+    int    *lgr3,
+    int    *lgn3,
+    int    *lgr4,
+    double *longitude,
+    double *latitude,
+    double *altitude,
+    double *whc,
+    int    *nt,
+    double *par,
+    double *forcing,
+    double *output
+    );
+
+// C wrapper function for P-model
+extern SEXP cnmodel_f_C(
+    SEXP c_only,
+    SEXP spinup,
+    SEXP spinupyears,
+    SEXP recycle,
+    SEXP firstyeartrend,
+    SEXP nyeartrend,
+    SEXP secs_per_tstep,
+    SEXP in_ppfd,
+    SEXP in_netrad,
+    SEXP outdt,
+    SEXP ltre,
+    SEXP ltne,
+    SEXP ltrd,
+    SEXP ltnd,
+    SEXP lgr3,
+    SEXP lgn3,
+    SEXP lgr4,
+    SEXP longitude,
+    SEXP latitude,
+    SEXP altitude,
+    SEXP whc,
+    SEXP n,
+    SEXP par,
+    SEXP forcing
+    ){
+
+    // Number of time steps (same in forcing and output)
+    const int nt = INTEGER(n)[0] ;
+
+    // Specify output matrix dimension
+    // 2nd agument to allocMatrix is number of rows, 3rd is number of columns
+    SEXP output = PROTECT( allocMatrix(REALSXP, nt, 52) );
+
+    // Fortran subroutine call
+    F77_CALL(cnmodel_f)(
+        LOGICAL(c_only),
+        LOGICAL(spinup),
+        INTEGER(spinupyears),
+        INTEGER(recycle),
+        INTEGER(firstyeartrend),
+        INTEGER(nyeartrend),
+        INTEGER(secs_per_tstep),
+        LOGICAL(in_ppfd),
+        LOGICAL(in_netrad),
+        INTEGER(outdt),
+        LOGICAL(ltre),
+        LOGICAL(ltne),
+        LOGICAL(ltrd),
+        LOGICAL(ltnd),
+        LOGICAL(lgr3),
+        LOGICAL(lgn3),
+        LOGICAL(lgr4),
+        REAL(longitude),
+        REAL(latitude),
+        REAL(altitude),
+        REAL(whc),
+        INTEGER(n),
+        REAL(par),
+        REAL(forcing),
+        REAL(output)
+        );
+
+    // // Output as list
+    // SEXP out_full = PROTECT( allocVector(VECSXP, 1) );
+    // SET_VECTOR_ELT(out_full, 0, output);
+
+    UNPROTECT(1);
+
+    return output;
+}
+
+/////////////////////////////////////////////////////////////
 // biomee
 /////////////////////////////////////////////////////////////
 void F77_NAME(biomee_f)(
@@ -519,6 +623,7 @@ extern SEXP biomee_f_C(
 /////////////////////////////////////////////////////////////
 static const R_CallMethodDef CallEntries[] = {
   {"pmodel_f_C",   (DL_FUNC) &pmodel_f_C,   23},  // Specify number of arguments to C wrapper as the last number here
+  {"cnmodel_f_C",  (DL_FUNC) &cnmodel_f_C,  24},  // Specify number of arguments to C wrapper as the last number here
   {"biomee_f_C",   (DL_FUNC) &biomee_f_C,   46},  // Number of the SEXP variables (not the output)
   {NULL,         NULL,                0}
 };
@@ -529,5 +634,6 @@ void R_init_rsofun(DllInfo *dll)
     R_useDynamicSymbols(dll, FALSE);
 
     R_RegisterCCallable("rsofun", "pmodel_f_C",  (DL_FUNC) &pmodel_f_C);
+    R_RegisterCCallable("rsofun", "cnmodel_f_C", (DL_FUNC) &cnmodel_f_C);
     R_RegisterCCallable("rsofun", "biomee_f_C",  (DL_FUNC) &biomee_f_C);
 }

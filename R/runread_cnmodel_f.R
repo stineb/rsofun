@@ -1,9 +1,9 @@
-#' Run the P-model
+#' Run the CN-model
 #'
-#' Runs the P-model and loads output in once.
+#' Runs the CN-model and loads output in once.
 #'
 #' @param drivers A nested data frame with one row for each site and columns
-#'  named according to the arguments of function \code{\link{run_pmodel_f_bysite}},
+#'  named according to the arguments of function \code{\link{run_cnmodel_f_bysite}},
 #'  namely \code{sitename, params_siml, site_info} and \code{forcing}.
 #' @param par A named list of free (calibratable) model parameters.
 #' \describe{
@@ -39,7 +39,7 @@
 #'
 #' @return A data frame (tibble) with one row for each site, site information 
 #' stored in the nested column \code{site_info} and outputs stored in the nested 
-#' column \code{data}. See \code{\link{run_pmodel_f_bysite}} for a detailed 
+#' column \code{data}. See \code{\link{run_cnmodel_f_bysite}} for a detailed 
 #' description of the outputs.
 #' @export
 #' 
@@ -77,6 +77,7 @@
 #' exactly replicated.
 #' 
 #' @examples
+#' \donttest{
 #' # Define model parameter values from previous work
 #' params_modl <- list(
 #'   kphio              = 0.04998,    # setup ORG in Stocker et al. 2020 GMD
@@ -91,11 +92,12 @@
 #' )
 #' 
 #' # Run the model for these parameters and the example drivers
-#' output <- rsofun::runread_pmodel_f(
+#' output <- rsofun::runread_cnmodel_f(
 #'   drivers = rsofun::p_model_drivers,
 #'   par = params_modl)
+#' }
 
-runread_pmodel_f <- function(
+runread_cnmodel_f <- function(
   drivers,
   par,
   makecheck = TRUE,
@@ -137,7 +139,7 @@ runread_pmodel_f <- function(
       ) %>%
       multidplyr::partition(cl) %>% 
       dplyr::mutate(data = purrr::map(input, 
-                                      ~run_pmodel_f_bysite(
+                                      ~run_cnmodel_f_bysite(
                                         sitename       = .x$sitename[[1]], 
                                         params_siml    = .x$params_siml[[1]], 
                                         site_info       = .x$site_info[[1]], 
@@ -170,11 +172,11 @@ runread_pmodel_f <- function(
   } else {
     
     # note that pmap() requires the object 'drivers' to have columns in the order
-    # corresponding to the order of arguments of run_pmodel_f_bysite().
+    # corresponding to the order of arguments of run_cnmodel_f_bysite().
     df_out <- drivers %>%
       dplyr::mutate(
         data = purrr::pmap(.,
-          run_pmodel_f_bysite,
+        	run_cnmodel_f_bysite,
             params_modl = par,
             makecheck = makecheck
         )

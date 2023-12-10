@@ -1,10 +1,13 @@
-#' R wrapper for SOFUN P-model
+#' R wrapper for SOFUN CN-model
 #' 
-#' Call to the Fortran P-model
+#' Call to the Fortran CN-model
 #'
 #' @param sitename Site name.
 #' @param params_siml Simulation parameters.
 #' \describe{
+#'       \item{c_only}{A logical specifying whether to simulate interactive C and N cycles. If set to \code{FALSE}, 
+#'                     constant leaf:root allocation fractions are used and required N for allocation is added from 
+#'                     an unspecified source, whereby the N mass balance is violated.} 
 #'       \item{spinup}{A logical value indicating whether this simulation does spin-up.}
 #'       \item{spinupyears}{Number of spin-up years.}
 #'       \item{recycle}{Length of standard recycling period, in days.}
@@ -15,7 +18,7 @@
 #'       \item{ltnd}{A logical value, \code{TRUE} if deciduous tree and N-fixing.}
 #'       \item{lgr3}{A logical value, \code{TRUE} if grass with C3 photosynthetic pathway.}
 #'       \item{lgn3}{A logical value, \code{TRUE} if grass with C3 photosynthetic
-#'       pathway and N-fixing.}
+#'                   pathway and N-fixing.}
 #'       \item{lgr4}{A logical value, \code{TRUE} if grass with C4 photosynthetic pathway.}
 #' }
 #' @param site_info A list of site meta info. Required:
@@ -130,6 +133,7 @@
 #' @useDynLib rsofun
 #'
 #' @examples
+#' \donttest{
 #' # Define model parameter values from previous work
 #' params_modl <- list(
 #'   kphio              = 0.04998,    # setup ORG in Stocker et al. 2020 GMD
@@ -144,7 +148,7 @@
 #' )
 #' 
 #' # Run the Fortran P-model 
-#' mod_output <- run_pmodel_f_bysite(
+#' mod_output <- run_cnmodel_f_bysite(
 #'   # unnest drivers example data
 #'   sitename = p_model_drivers$sitename[1],
 #'   params_siml = p_model_drivers$params_siml[[1]],
@@ -152,8 +156,9 @@
 #'   forcing = p_model_drivers$forcing[[1]],
 #'   params_modl = params_modl
 #'  )
+#' }
 
-run_pmodel_f_bysite <- function(
+run_cnmodel_f_bysite <- function(
   sitename,
   params_siml,
   site_info,
@@ -165,9 +170,9 @@ run_pmodel_f_bysite <- function(
   
   # predefine variables for CRAN check compliance
   ccov <- temp <- rain <- vpd <- ppfd <- netrad <-
-  fsun <- snow <- co2 <- fapar <- patm <- 
+  fsun <- snow <- co2 <- ndep <- fapar <- patm <- 
   nyeartrend_forcing <- firstyeartrend_forcing <-
-  tmin <- tmax <- . <- NULL
+  tmin <- tmax <- fsand <- fclay <- forg <- fgravel <- . <- NULL
   
   # base state, always execute the call
   continue <- TRUE
@@ -196,7 +201,10 @@ run_pmodel_f_bysite <- function(
   # re-define units and naming of forcing dataframe
   # keep the order of columns - it's critical for Fortran (reading by column number)
   forcing <- forcing %>% 
-    dplyr::mutate(fsun = (100-ccov)/100) %>% 
+    dplyr::mutate(
+      fsun = (100-ccov)/100,
+      ndep = 0.0
+      ) %>% 
     dplyr::select(
       temp,
       rain,
@@ -209,9 +217,14 @@ run_pmodel_f_bysite <- function(
       fapar,
       patm,
       tmin,
-      tmax
+      tmax,
+      fharv,
+      dno3,
+      dnh4,
+      cseed,
+      nseed
       )
-  
+
   # validate input
   if (makecheck){
     
@@ -225,7 +238,12 @@ run_pmodel_f_bysite <- function(
       "fapar",
       "patm",
       "tmin",
-      "tmax"
+      "tmax",
+      "fharv",
+      "dno3",
+      "dnh4",
+      "cseed",
+      "nseed"
     )
     
     # create a loop to loop over a list of variables
@@ -247,6 +265,7 @@ run_pmodel_f_bysite <- function(
     
     # parameters to check
     check_param <- c(
+      "c_only",
       "spinup",
       "spinupyears",
       "recycle",
@@ -281,11 +300,91 @@ run_pmodel_f_bysite <- function(
     }
     
     # Check model parameters
-    if( sum( names(params_modl) %in% c('kphio', 'kphio_par_a', 'kphio_par_b',
-                                              'soilm_thetastar', 'soilm_betao',
-                                              'beta_unitcostratio', 'rd_to_vcmax', 
-                                              'tau_acclim', 'kc_jmax')
-    ) != 9){
+    if( sum( names(params_modl) %in% c('kphio', 
+                                       'kphio_par_a', 
+                                       'kphio_par_b',
+                                       'soilm_thetastar', 
+                                       'soilm_betao',
+                                       'beta_unitcostratio', 
+                                       'rd_to_vcmax', 
+                                       'tau_acclim', 
+                                       'kc_jmax',
+                                       'f_nretain',
+                                       'fpc_tree_max',
+                                       'growtheff',
+                                       'r_root',
+                                       'r_sapw',
+                                       'exurate',
+                                       'cton_soil',
+                                       'k_decay_leaf',
+                                       'r_cton_seed',
+                                       'k_decay_root',
+                                       'k_decay_labl',
+                                       'k_decay_sapw',
+                                       'r_cton_root',
+                                       'r_cton_wood',
+                                       'ncw_min',
+                                       'r_n_cw_v',
+                                       'r_ctostructn_leaf',
+                                       'kbeer',
+                                       'gddbase',
+                                       'ramp',
+                                       'phentype',
+                                       'perc_k1',
+                                       'thdiff_wp',
+                                       'thdiff_whc15',
+                                       'thdiff_fc',
+                                       'forg',
+                                       'wbwp',
+                                       'por',
+                                       'fsand',
+                                       'fclay',
+                                       'fsilt',
+                                       'kA',
+                                       'kalb_sw',
+                                       'kalb_vis',
+                                       'kb',
+                                       'kc',
+                                       'kCw',
+                                       'kd',
+                                       'ke',
+                                       'keps',
+                                       'kWm',
+                                       'kw',
+                                       'komega',
+                                       'maxmeltrate',
+                                       'klitt_af10',
+                                       'klitt_as10',
+                                       'klitt_bg10',
+                                       'kexu10',
+                                       'ksoil_fs10',
+                                       'ksoil_sl10',
+                                       'ntoc_crit1',
+                                       'ntoc_crit2',
+                                       'cton_microb',
+                                       'tmppar',
+                                       'fastfrac',
+                                       'eff_nup',
+                                       'minimumcostfix',
+                                       'fixoptimum',
+                                       'a_param_fix',
+                                       'b_param_fix',
+                                       'maxnitr',
+                                       'non',
+                                       'n2on',
+                                       'kn',
+                                       'kdoc',
+                                       'docmax',
+                                       'dnitr2n2o',
+                                       'frac_leaf',
+                                       'frac_wood',
+                                       'frac_avl_labl',
+                                       'nv_vcmax25',
+                                       'nuptake_kc',
+                                       'nuptake_kv',
+                                       'nuptake_vmax'
+                                       )
+    ) != 83 ){
       warning(" Returning a dummy data frame. Incorrect model parameters.")
       continue <- FALSE
     }
@@ -324,15 +423,90 @@ run_pmodel_f_bysite <- function(
       as.numeric(params_modl$beta_unitcostratio),
       as.numeric(params_modl$rd_to_vcmax),
       as.numeric(params_modl$tau_acclim),
-      as.numeric(params_modl$kc_jmax)
+      as.numeric(params_modl$kc_jmax),
+      as.numeric(params_modl$f_nretain),
+      as.numeric(params_modl$fpc_tree_max),
+      as.numeric(params_modl$growtheff),
+      as.numeric(params_modl$r_root),
+      as.numeric(params_modl$r_sapw),
+      as.numeric(params_modl$exurate),
+      as.numeric(params_modl$cton_soil),
+      as.numeric(params_modl$k_decay_leaf),
+      as.numeric(params_modl$r_cton_seed),
+      as.numeric(params_modl$k_decay_root),
+      as.numeric(params_modl$k_decay_labl),
+      as.numeric(params_modl$k_decay_sapw),
+      as.numeric(params_modl$r_cton_root),
+      as.numeric(params_modl$r_cton_wood),
+      as.numeric(params_modl$ncw_min),
+      as.numeric(params_modl$r_n_cw_v),
+      as.numeric(params_modl$r_ctostructn_leaf),
+      as.numeric(params_modl$kbeer),
+      as.numeric(params_modl$gddbase),
+      as.numeric(params_modl$ramp),
+      as.numeric(params_modl$phentype),
+      as.numeric(params_modl$perc_k1),
+      as.numeric(params_modl$thdiff_wp),
+      as.numeric(params_modl$thdiff_whc15),
+      as.numeric(params_modl$thdiff_fc),
+      as.numeric(params_modl$forg),
+      as.numeric(params_modl$wbwp),
+      as.numeric(params_modl$por),
+      as.numeric(params_modl$fsand),
+      as.numeric(params_modl$fclay),
+      as.numeric(params_modl$fsilt),
+      as.numeric(params_modl$kA),
+      as.numeric(params_modl$kalb_sw),
+      as.numeric(params_modl$kalb_vis),
+      as.numeric(params_modl$kb),
+      as.numeric(params_modl$kc),
+      as.numeric(params_modl$kCw),
+      as.numeric(params_modl$kd),
+      as.numeric(params_modl$ke),
+      as.numeric(params_modl$keps),
+      as.numeric(params_modl$kWm),
+      as.numeric(params_modl$kw),
+      as.numeric(params_modl$komega),
+      as.numeric(params_modl$maxmeltrate),
+      as.numeric(params_modl$klitt_af10),
+      as.numeric(params_modl$klitt_as10),
+      as.numeric(params_modl$klitt_bg10),
+      as.numeric(params_modl$kexu10),
+      as.numeric(params_modl$ksoil_fs10),
+      as.numeric(params_modl$ksoil_sl10),
+      as.numeric(params_modl$ntoc_crit1),
+      as.numeric(params_modl$ntoc_crit2),
+      as.numeric(params_modl$cton_microb),
+      as.numeric(params_modl$tmppar),
+      as.numeric(params_modl$fastfrac),
+      as.numeric(params_modl$eff_nup),
+      as.numeric(params_modl$minimumcostfix),
+      as.numeric(params_modl$fixoptimum),
+      as.numeric(params_modl$a_param_fix),
+      as.numeric(params_modl$b_param_fix),
+      as.numeric(params_modl$maxnitr),
+      as.numeric(params_modl$non),
+      as.numeric(params_modl$n2on),
+      as.numeric(params_modl$kn),
+      as.numeric(params_modl$kdoc),
+      as.numeric(params_modl$docmax),
+      as.numeric(params_modl$dnitr2n2o),
+      as.numeric(params_modl$frac_leaf),
+      as.numeric(params_modl$frac_wood),
+      as.numeric(params_modl$frac_avl_labl),
+      as.numeric(params_modl$nv_vcmax25),
+      as.numeric(params_modl$nuptake_kc),
+      as.numeric(params_modl$nuptake_kv),
+      as.numeric(params_modl$nuptake_vmax)
       )
 
     ## C wrapper call
     out <- .Call(
 
-      'pmodel_f_C',
+      'cnmodel_f_C',
       
       ## Simulation parameters
+      c_only                    = as.logical(params_siml$c_only),
       spinup                    = as.logical(params_siml$spinup),
       spinupyears               = as.integer(params_siml$spinupyears),
       recycle                   = as.integer(params_siml$recycle),
@@ -368,48 +542,118 @@ run_pmodel_f_bysite <- function(
       as.matrix() %>% 
       as.data.frame() %>% 
       stats::setNames(
-        c("fapar", 
-          "gpp", 
-          "aet", 
-          "le", 
-          "pet", 
+        c(
+          "fapar",
+          "gpp",
+          "transp",
+          "latenth",
+          "pet",
           "vcmax",
-          "jmax", 
-          "vcmax25", 
-          "jmax25", 
-          "gs_accl", 
-          "wscal", 
-          "chi", 
-          "iwue", 
-          "rd",
-          "tsoil", 
-          "netrad", 
-          "wcont", 
-          "snow")
-        ) %>%
+          "jmax",
+          "vcmax25",
+          "jmax25",
+          "gs_accl",
+          "wscal",
+          "chi",
+          "iwue",
+          "tsoil",
+          "lai",
+          "cleaf",
+          "nleaf",
+          "croot",
+          "nroot",
+          "clabl",
+          "nlabl",
+          "ninorg",
+          "pnh4",
+          "pno3",
+          "enleach",
+          "en2o",
+          "npp",
+          "csoil",
+          "nsoil",
+          "clitt",
+          "nlitt",
+          "nfix",
+          "nup",
+          "cex",
+          "netmin",
+          "dcharv",
+          "dnharv",
+          "drd",
+          "lma",
+          "narea",
+          "narea_v",
+          "nloss",
+          "cseed",
+          "nseed",
+          "npp_leaf",
+          "npp_root",
+          "npp_wood",
+          "asat",
+          "x1",
+          "x2",
+          "x3",
+          "x4"
+          )) %>%
       as_tibble(.name_repair = "check_unique") %>%
       dplyr::bind_cols(ddf,.)
 
   } else {
-    out <- tibble(date = as.Date("2000-01-01"),
-                  fapar = NA, 
-                  gpp = NA, 
-                  transp = NA, 
-                  latenth = NA, 
-                  pet = NA, 
-                  vcmax = NA, 
-                  jmax = NA, 
-                  vcmax25 = NA, 
-                  jmax25 = NA, 
-                  gs_accl = NA, 
-                  wscal = NA, 
-                  chi = NA, 
-                  iwue = NA, 
-                  rd = NA, 
-                  tsoil = NA, 
-                  netrad = NA,
-                  wcont = NA, 
-                  snow = NA)
+    out <- tibble(date = lubridate::ymd("2000-01-01"),
+                  fapar   = NA,
+                  gpp     = NA,
+                  transp  = NA,
+                  latenth = NA,
+                  pet     = NA,
+                  vcmax   = NA,
+                  jmax    = NA,
+                  vcmax25 = NA,
+                  jmax25  = NA,
+                  gs_accl = NA,
+                  wscal   = NA,
+                  chi     = NA,
+                  iwue    = NA,
+                  tsoil   = NA,
+                  lai     = NA,
+                  cleaf   = NA,
+                  nleaf   = NA,
+                  croot   = NA,
+                  nroot   = NA,
+                  clabl   = NA,
+                  nlabl   = NA,
+                  ninorg  = NA,
+                  pnh4    = NA,
+                  pno3    = NA,
+                  enleach = NA,
+                  en2o    = NA,
+                  npp     = NA,
+                  csoil   = NA,
+                  nsoil   = NA,
+                  clitt   = NA,
+                  nlitt   = NA,
+                  nfix    = NA,
+                  nup     = NA,
+                  cex     = NA,
+                  netmin  = NA,
+                  dcharv  = NA,
+                  dnharv  = NA,
+                  drd     = NA,
+                  lma     = NA,
+                  narea   = NA,
+                  narea_v = NA,
+                  nloss   = NA,
+                  cseed   = NA,
+                  nseed   = NA,
+                  npp_leaf= NA,
+                  npp_root= NA,
+                  npp_wood= NA,
+                  asat    = NA,
+                  x1      = NA,
+                  x2      = NA,
+                  x3      = NA,
+                  x4      = NA
+                  )
   }
     
   return(out)

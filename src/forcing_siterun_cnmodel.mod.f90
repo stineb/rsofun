@@ -1,6 +1,6 @@
-module md_forcing_pmodel
+module md_forcing_cnmodel
   !////////////////////////////////////////////////////////////////
-  ! Module containing treatment of forcing for P-model, linking
+  ! Module containing treatment of forcing for CN-model, linking
   ! what's obtained from R through SR pmodel_f and what's needed by biosphere SR.
   !----------------------------------------------------------------
   use, intrinsic :: iso_fortran_env, dp=>real64, sp=>real32, in=>int32
@@ -11,7 +11,7 @@ module md_forcing_pmodel
   implicit none
 
   private
-  public ninput_type, landuse_type, climate_type, &
+  public landuse_type, climate_type, getlanduse, &
     getclimate, getco2, getfapar, get_fpc_grid, vegcover_type
 
   type climate_type
@@ -32,19 +32,16 @@ module md_forcing_pmodel
   end type vegcover_type
 
   type landuse_type
-    real(kind=sp), dimension(nlu)  :: lu_area
-    logical, dimension(ndayyear)   :: do_grharvest
+    real(kind=sp) :: dfharv  ! fraction of biomass harvested per day (m-2 d-1)
+    real(kind=sp) :: dnoy    ! NO3 inputs per day, fertilisation (gN m-2 d-1)
+    real(kind=sp) :: dnhx    ! NH4 inputs per day, fertilisation (gN m-2 d-1)
+    real(kind=sp) :: cseed   ! seed C input per day (sowing) (gC m-2 d-1)
+    real(kind=sp) :: nseed   ! seed N input per day (sowing) (gN m-2 d-1)
   end type landuse_type
-
-  type ninput_type
-    real(kind=sp), dimension(ndayyear) :: dnoy
-    real(kind=sp), dimension(ndayyear) :: dnhx
-    real(kind=sp), dimension(ndayyear) :: dtot
-  end type ninput_type
 
 contains
 
-  function getclimate( nt, forcing, climateyear_idx, in_ppfd, in_netrad ) result ( out_climate )
+  function getclimate( nt, forcing, climateyear_idx, in_ppfd, in_netrad, elv ) result ( out_climate )
     !////////////////////////////////////////////////////////////////
     ! This function invokes file format specific "sub-functions/routines"
     ! to read from NetCDF. This nesting is necessary because this 
@@ -53,10 +50,11 @@ contains
     !----------------------------------------------------------------
     ! arguments
     integer,  intent(in) :: nt ! number of time steps
-    real(kind=dp),  dimension(nt,13), intent(in)  :: forcing  ! array containing all temporally varying forcing data (rows: time steps; columns: 1=air temperature, 2=rainfall, 3=vpd, 4=ppfd, 5=net radiation, 6=sunshine fraction, 7=snowfall, 8=co2, 9=N-deposition) 
+    real(kind=dp),  dimension(nt,16), intent(in)  :: forcing  ! array containing all temporally varying forcing data (rows: time steps; columns: 1=air temperature, 2=rainfall, 3=vpd, 4=ppfd, 5=net radiation, 6=sunshine fraction, 7=snowfall, 8=co2, 9=N-deposition) 
     integer, intent(in) :: climateyear_idx
     logical, intent(in) :: in_ppfd
     logical, intent(in) :: in_netrad
+    real, intent(in) :: elv
 
     ! local variables
     integer :: idx_start, idx_end
@@ -100,7 +98,7 @@ contains
     out_climate(:)%dtmax   = real(forcing(idx_start:idx_end, 12))
 
   end function getclimate
-
+  
 
   function getco2( nt, forcing, forcingyear, firstyeartrend ) result( pco2 )
     !////////////////////////////////////////////////////////////////
@@ -108,7 +106,7 @@ contains
     !----------------------------------------------------------------
     ! arguments
     integer,  intent(in) :: nt ! number of time steps
-    real(kind=dp),  dimension(nt,13), intent(in)  :: forcing  ! array containing all temporally varying forcing data (rows: time steps; columns: 1=air temperature, 2=rainfall, 3=vpd, 4=ppfd, 5=net radiation, 6=sunshine fraction, 7=snowfall, 8=co2, 9=N-deposition) 
+    real(kind=dp),  dimension(nt,16), intent(in)  :: forcing  ! array containing all temporally varying forcing data (rows: time steps; columns: 1=air temperature, 2=rainfall, 3=vpd, 4=ppfd, 5=net radiation, 6=sunshine fraction, 7=snowfall, 8=co2, 9=N-deposition) 
     integer, intent(in) :: forcingyear
     integer, intent(in) :: firstyeartrend
 
@@ -135,7 +133,7 @@ contains
     !----------------------------------------------------------------
     ! arguments
     integer,  intent(in) :: nt ! number of time steps
-    real(kind=dp),  dimension(nt,11), intent(in)  :: forcing  ! array containing all temporally varying forcing data (rows: time steps; columns: 1=air temperature, 2=rainfall, 3=vpd, 4=ppfd, 5=net radiation, 6=sunshine fraction, 7=snowfall, 8=co2, 9=N-deposition) 
+    real(kind=dp), dimension(nt,16), intent(in)  :: forcing  ! array containing all temporally varying forcing data (rows: time steps; columns: 1=air temperature, 2=rainfall, 3=vpd, 4=ppfd, 5=net radiation, 6=sunshine fraction, 7=snowfall, 8=co2, 9=N-deposition) 
     integer, intent(in) :: forcingyear_idx
 
     ! function return variable
@@ -148,11 +146,6 @@ contains
     idx_end   = idx_start + ndayyear - 1
 
     out_vegcover(:)%dfapar = real(forcing(idx_start:idx_end, 9))
-
-    ! ! "Correct" fAPAR
-    ! print*,"WARNING: normalising fAPAR to within 0.12 and 1.0."
-    ! out_vegcover(:)%dfapar = max((out_vegcover(:)%dfapar - 0.12), 0.0)/(1.0 - 0.12)
-    
 
   end function getfapar
 
@@ -172,7 +165,7 @@ contains
     ! 9: WET: type12 = "permanent wetlands" ;
     ! 10:CRO: type13 + type15 = "croplands" + "cropland (natural vegetation mosaic)";
     !----------------------------------------------------------------
-    use md_params_siml_pmodel, only: paramstype_siml
+    use md_params_siml_cnmodel, only: paramstype_siml
     use md_params_core, only: npft
 
     ! arguments
@@ -212,4 +205,37 @@ contains
     
   end function get_fpc_grid
 
-end module md_forcing_pmodel
+
+  function getlanduse( nt, forcing, forcingyear, firstyeartrend ) result( out_landuse )
+    !////////////////////////////////////////////////////////////////
+    ! Function reads this year's annual landuse state and harvesting regime (day of above-ground harvest)
+    ! Grass harvest forcing file is read for specific year, if none is available,
+    ! use earliest forcing file available. 
+    !----------------------------------------------------------------
+    ! arguments
+    integer,  intent(in) :: nt ! number of time steps
+    real(kind=dp),  dimension(nt,16), intent(in)  :: forcing  ! array containing all temporally varying forcing data (rows: time steps; columns: 1=air temperature, 2=rainfall, 3=vpd, 4=ppfd, 5=net radiation, 6=sunshine fraction, 7=snowfall, 8=co2, 9=N-deposition) 
+    integer, intent(in) :: forcingyear
+    integer, intent(in) :: firstyeartrend
+
+    ! function return variable
+    type( landuse_type ), dimension(ndayyear) :: out_landuse
+
+    ! local variables 
+    integer :: readyear_idx
+    integer :: idx_start, idx_end
+
+    readyear_idx = forcingyear - firstyeartrend + 1
+    idx_start = (readyear_idx - 1) * ndayyear + 1
+    idx_end   = idx_start + ndayyear - 1
+
+    out_landuse(:)%dfharv = real(forcing(idx_start:idx_end, 13))
+    out_landuse(:)%dnoy   = real(forcing(idx_start:idx_end, 14))
+    out_landuse(:)%dnhx   = real(forcing(idx_start:idx_end, 15))
+    out_landuse(:)%cseed  = real(forcing(idx_start:idx_end, 16))
+    out_landuse(:)%nseed  = real(forcing(idx_start:idx_end, 17))
+
+  end function getlanduse
+
+
+end module md_forcing_cnmodel
