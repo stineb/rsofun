@@ -151,7 +151,7 @@ contains
       ! acclimated to slowly varying conditions
       !----------------------------------------------------------------
       if (tile(lu)%plant(pft)%fpc_grid > 0.0 .and. &      ! PFT is present
-          grid%dayl > 0.0 .and.                    &      ! no arctic night
+          tile_fluxes(lu)%canopy%dayl > 0.0 .and.  &      ! no arctic night
           temp_memory > -5.0 ) then                       ! minimum temp threshold to avoid fpe
 
         !================================================================
@@ -236,13 +236,13 @@ contains
       ! take maximum metabolic leaf N per unit absorbed light of the past 'len' P-model calls
       if (firstcall) then
         actnv_unitfapar_vec(lu,pft,:) = out_pmodel%vcmax25_unitiabs &
-                                        * climate_acclimation%dppfd / tile_fluxes(:)%canopy%dayl &
+                                        * climate_acclimation%dppfd / tile_fluxes(lu)%canopy%dayl &
                                         * params_pft_plant(pft)%nv_vcmax25
         if (pft == npft .and. lu == nlu) firstcall = .false.
       else
-        actnv_unitfapar_vec(lu,pft,1:(ndayyear+1-1)) = actnv_unitfapar_vec(lu,pft,2:(ndayyear+1))
+        actnv_unitfapar_vec(lu,pft,1:ndayyear) = actnv_unitfapar_vec(lu,pft,2:(ndayyear+1))
         actnv_unitfapar_vec(lu,pft,(ndayyear+1)) = out_pmodel%vcmax25_unitiabs &
-                                                   * climate_acclimation%dppfd / tile_fluxes(:)%canopy%dayl &
+                                                   * climate_acclimation%dppfd / tile_fluxes(lu)%canopy%dayl &
                                                    * params_pft_plant(pft)%nv_vcmax25
       end if
       tile(lu)%plant(pft)%actnv_unitfapar          = maxval(actnv_unitfapar_vec(lu,pft,:))
