@@ -370,6 +370,9 @@ contains
       ! c_consumed is c_req; n_consumed is n_con
       if ( myinterface%steering%dofree_alloc ) then
         frac_leaf = 1.0 / (psi_c * n_con_corr / (psi_n * c_con) + 1.0)
+
+        ! with wood allocation:
+        ! frac_leaf = psi_c * c_con * (1.0 - frac_wood) / (psi_c * n_con_corr + psi_c * c_con)
       end if
       ! tile_fluxes(lu)%plant(pft)%debug3 = 1.0 / (psi_c * n_con_corr / (psi_n * c_con) + 1.0)
 
@@ -642,8 +645,9 @@ contains
     ! moving from labile to reserves.
     !-----------------------------------------------------------
     real, intent(in) :: c_labl, c_resv, c_labl_target, c_resv_target, f_max
+    real, parameter :: lambda_store = 10.0
     real :: out
-    out = max(0.0, 1.0 - c_resv / c_resv_target) * f_max / (1.0 + exp(-10.0 * (c_labl / c_labl_target - 1.5)))
+    out = max(0.0, 1.0 - c_resv / c_resv_target) * f_max / (1.0 + exp(-lambda_store * (c_labl / c_labl_target - 1.5)))
   end function calc_l2r
 
 
