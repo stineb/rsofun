@@ -1,0 +1,11 @@
+pandoc: 2.19.2
+pkgdown: 2.0.7
+pkgdown_sha: ~
+articles:
+  biomee_use: biomee_use.html
+  data_format: data_format.html
+  new_cost_function: new_cost_function.html
+  pmodel_use: pmodel_use.html
+  sensitivity_analysis: sensitivity_analysis.html
+last_built: 2024-02-08T08:53Z
+
