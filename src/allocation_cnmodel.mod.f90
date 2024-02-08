@@ -94,7 +94,7 @@ contains
     real, dimension(nlu,npft,len_resp_vec), save :: resp_vec
     real :: frac_for_resp
 
-    real    :: cavl, navl, req, c_req, n_req, c_acq, n_acq
+    real    :: req, c_req, n_req, c_acq, n_acq
     logical, save :: firstcall_cnbal = .true.
     integer, parameter :: len_cnbal_vec = 365
 
@@ -112,11 +112,8 @@ contains
     integer, parameter :: len_luep_vec = ndayyear
     integer, parameter :: len_rrum_vec = ndayyear
     integer, parameter :: len_rduf_vec = ndayyear
-    integer, parameter :: len_navl_vec = ndayyear
     integer, parameter :: len_cn_vec   = ndayyear
     
-    real, dimension(nlu,len_navl_vec),      save :: no3_vec
-    real, dimension(nlu,len_navl_vec),      save :: nh4_vec
     real, dimension(nlu,npft,len_luep_vec), save :: luep_vec
     real, dimension(nlu,npft,len_rduf_vec), save :: rduf_vec
     real, dimension(nlu,npft,len_rrum_vec), save :: rrum_vec
@@ -196,7 +193,7 @@ contains
           dcroot = (1.0 - frac_leaf) * params_plant%growtheff * avl%c%c12
           dnroot = dcroot * params_pft_plant(pft)%r_ntoc_root
 
-          tile_fluxes(lu)%plant(pft)%debug4 = tile(lu)%plant(pft)%pheno%level_veggrowth
+          tile_fluxes(lu)%plant(pft)%debug4 = tile(lu)%plant(pft)%pheno%level_veggrowth 
 
           ! !-------------------------------------------------------------------
           ! ! SEED ALLOCATION
