@@ -801,7 +801,7 @@ contains
     real                         :: ref_temp_local  ! local copy of ref_temp
 
     ! for lloyd and taylor method
-    real, parameter :: E0 = 308.56      ! Activation Energy
+    real, parameter :: E0 = 308.56      ! Activation Energy [J]
     real, parameter :: T0 = 227.13      ! calibration temperature [K]
     real, parameter :: Tzero = 273.15   ! 0°C = 273.15 K 
 

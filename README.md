@@ -4,7 +4,7 @@
 
 # rsofun
 
-An R Simulating Optimal FUNctioning (RSOFUN) framework for site-scale simulations of ecosystem processes. The package contains the following modules:
+An R Simulating Optimal FUNctioning (rsofun) framework for site-scale simulations of ecosystem processes. The package contains the following modules:
 
 - P-model for leaf-level acclimation of photosynthesis from [Stocker et al. (2019)](https://gmd.copernicus.org/preprints/gmd-2019-200/).
 - SPLASH for bioclimatic variables, including the surface radiation budget and the soil water balance from [Davis et al. (2017)](https://doi.org/10.5194/gmd-10-689-2017).

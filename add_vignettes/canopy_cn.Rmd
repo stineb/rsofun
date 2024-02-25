@@ -1,0 +1,70 @@
+---
+title: "Canopy C and N"
+author: "Beni Stocker"
+date: "2024-02-24"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+CN-model contains the P-model for photosyntheis, which is formulated as a big-leaf model, whereby CO$_2$ assimilation is to be understood as the ecosystem gross primary production (GPP). Accordingly, also $V_\mathrm{cmax}$ and $R_d$ are to be understood as quantities representative for canopy-totals and in units of per ground area. From the formulation of the P-model (Stocker et al., 2020), it follows that $V_\mathrm{cmax}$ scales in proportion to the light absorbed by the canopy ($I_\mathrm{abs}$). Using the Beer-Lambert law for light absorption, a saturating relationship between (canopy total) $V_\mathrm{cmax}$ and the leaf area index (LAI) follows.
+$$
+V_\mathrm{cmax} = \underbrace{\varphi_0 \frac{\chi + \kappa}{\chi + 2\gamma} I_0}_{c_0} \left(1 - e^{-kL} \right)
+$$
+
+The metabolic leaf N ($N_v$) is taken to be proportional to $V_\mathrm{cmax}$ at standard temperature (25°C, $V_\mathrm{cmax25}$).
+$$
+N_v = b_v V_{cmax25} = c_0 b_v f_t^{-1} \left(1 - e^{-kL} \right)
+$$
+At the leaf-level, the amount of metabolic N per unit leaf area is
+$$
+N_v^l = N_v/L
+$$
+
+The structural leaf N ($N_s$) is modelled as a linear function of $N_v^l$.
+$$
+N_s^l = a_\mathrm{s} + b_\mathrm{s} N_v^l
+$$
+The parameter $a_s$ determines the minimum investment into structures as $N_v^l$ tends toward zero when $L$ tends towards infinity (theoretically).
+
+The total leaf N is the sum of metabolic and structural N at the leaf level ($N^l = N_v^l + N_s^l$). At the canopy-level, this is
+$$
+\begin{aligned}
+N_\mathrm{fol} &= L (N_v^l + N_s^l) \\
+               &= a_s L + (1 + b_s)N_v \\
+               &= a_s L + (1 + b_s) c_0 b_v f_t^{-1} \left(1 - e^{-kL} \right)
+\end{aligned}
+$$
+
+Leaf C per unit leaf area (which is largely equivalent to leaf mass per area, LMA) is calculated by multiplying $N_s^l$ with a constant factor that relates canopy structural N to structural C.
+$$
+C^l = b_{\text{c}}\;N_s^l
+$$
+The canopy-total C in foliage is 
+$$
+\begin{aligned}
+C_\mathrm{fol} &= C^l L \\
+               &= L b_c N_s^l \\
+               &= L b_c (a_s + b_s N_v^l) \\
+               &= L b_c a_s + b_s N_v \\ 
+               &= L b_c a_s + b_s c_0 b_v f_t^{-1} \left(1 - e^{-kL} \right)
+\end{aligned}
+$$
+
+This is a transcendental function of the form
+$$
+\alpha(1-e^{-kL}) + \beta L - \gamma = 0
+$$
+with: 
+
+- $\alpha = b_c a_s$
+- $\beta = b_s c_0 b_v f_t^{-1}$
+- $\gamma = C_\mathrm{fol}$
+
+To express $L$ as a function of $C_\mathrm{fol}$, the Lambert-W function $W_n$ has to be used:
+$$
+L = \frac{\gamma - \alpha}{\beta} + \frac{1}{k} W_n \left( \frac{\alpha k}{\beta} \exp \left( (\alpha - \gamma)k/\beta \right)  \right)
+$$
+
