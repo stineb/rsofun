@@ -718,9 +718,9 @@ df_rr2  <- log(df_exp2[2,]/df_exp2[1,]) |>
                                           "n_inorg"))))
 
 ggrr <- ggplot() +
-  geom_point(aes(variable, response), data = df_rr2, size = 2, color = "grey50") +
-  geom_point(aes(variable, response), data = df_rr, size = 2) +
-  geom_hline( yintercept = 0.0, size = 0.5, linetype = "dotted" ) +
+  geom_point(aes(variable, response), data = df_rr2, linewidth = 2, color = "grey50") +
+  geom_point(aes(variable, response), data = df_rr, linewidth = 2) +
+  geom_hline( yintercept = 0.0, linewidth = 0.5, linetype = "dotted" ) +
   labs(x = "Variable", y = "Log Response Ratio") +
   coord_flip() +
   labs(title = "cnmodel prediction", subtitle = "Response to eCO2")

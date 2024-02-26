@@ -251,6 +251,7 @@ contains
 
     ! function return variable
     real :: lai
+    real :: lai_test  ! xxx test
 
     ! local variables
     real    :: alpha, beta, gamma ! variable substitutes
@@ -273,6 +274,7 @@ contains
           gamma * params_plant%kbeer + &
           beta * calc_wapr( arg_to_lambertw, 0, nerror, 9999 ) &
         )
+
     else
 
       lai = 0.0
