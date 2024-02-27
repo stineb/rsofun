@@ -251,7 +251,6 @@ contains
 
     ! function return variable
     real :: lai
-    real :: lai_test  ! xxx test
 
     ! local variables
     real    :: alpha, beta, gamma ! variable substitutes
@@ -398,7 +397,7 @@ contains
     plant%narea_metabolic  = plant%narea_metabolic_canopy / plant%lai_ind   ! g N m-2-leaf
     plant%narea_structural = plant%narea_structural_canopy / plant%lai_ind  ! g N m-2-leaf
     plant%narea            = plant%narea_canopy / plant%lai_ind ! g N m-2-leaf
-    plant%lma              = plant%leafc_canopy / plant%lai_ind 
+    plant%lma              = plant%leafc_canopy / plant%lai_ind ! g C m-2-leaf
 
     ! additional traits
     plant%nmass            = plant%narea / ( plant%lma / c_content_of_biomass )

@@ -249,7 +249,7 @@ contains
       tile_fluxes(lu)%plant(pft)%lue               = out_pmodel%lue
       tile_fluxes(lu)%plant(pft)%vcmax25_unitfapar = out_pmodel%vcmax25_unitiabs * climate_acclimation%dppfd
 
-      print*,'tile(lu)%plant(pft)%actnv_unitfapar ', tile(lu)%plant(pft)%actnv_unitfapar
+      ! print*,'vcmax25_unitiabs * dppfd / dayl ', out_pmodel%vcmax25_unitiabs * climate_acclimation%dppfd / tile_fluxes(lu)%canopy%dayl
 
       !----------------------------------------------------------------
       ! Stomatal conductance

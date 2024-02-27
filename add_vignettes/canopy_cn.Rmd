@@ -110,7 +110,6 @@ Let's apply this model for visualising:
 
 -   $N_v$, $N_\mathrm{fol}$, $C_\mathrm{fol}$, $(C:N)_\mathrm{fol}$, and
     LMA versus LAI.
--   $(C:N)_\mathrm{fol}$ versus $C_\mathrm{fol}$
 -   LAI versus $C_\mathrm{fol}$
 
 Define and obtain values representing a temperate forest with a LAI of
@@ -169,6 +168,10 @@ calc_n_v <- function(lai, par){
   par$actnv_unitfapar * (1 - exp(-par$kbeer * lai))
 }
 
+calc_n_vp <- function(lai, par){
+  (1 + par$r_n_cw_v) * par$actnv_unitfapar * (1 - exp(-par$kbeer * lai))
+}
+
 calc_n_fol <- function(lai, par){
   par$ncw_min * lai + (1 + par$r_n_cw_v) * par$actnv_unitfapar * (1 - exp(-par$kbeer * lai))
 }
@@ -205,6 +208,7 @@ get_lai_approx_to_inf <- function( cleaf, par ){
 ```{r}
 df <- tibble(lai = seq(0, 10, by = 0.2)) |> 
   mutate(n_v = calc_n_v(lai, par),
+         n_vp = calc_n_vp(lai, par),
          n_fol = calc_n_fol(lai, par),
          c_fol = calc_c_fol(lai, par)
          ) |> 
@@ -213,7 +217,7 @@ df <- tibble(lai = seq(0, 10, by = 0.2)) |>
          )
 
 df |> 
-  pivot_longer(cols = c(cn_fol, lma, c_fol, n_fol, n_v),
+  pivot_longer(cols = c(cn_fol, lma, c_fol, n_fol, n_v, n_vp),
                names_to = "var",
                values_to = "val") |> 
   ggplot(aes(lai, val)) +
