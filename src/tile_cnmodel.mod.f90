@@ -911,6 +911,8 @@ contains
     out_biosphere%npp_leaf= tile_fluxes(lu)%canopy%npp_leaf
     out_biosphere%npp_root= tile_fluxes(lu)%canopy%npp_root
     out_biosphere%npp_wood= tile_fluxes(lu)%canopy%npp_wood
+    out_biosphere%cwood   = tile(lu)%plant(pft)%pwood%c%c12
+    out_biosphere%nwood   = tile(lu)%plant(pft)%pwood%n%n14
 
     ! for debugging purposes
     out_biosphere%x1      = tile_fluxes(lu)%plant(pft)%debug1

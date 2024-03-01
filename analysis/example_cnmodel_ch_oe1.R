@@ -11,7 +11,7 @@ library(ingestr)
 pars <- list(
   
   # P-model
-  kphio                 = 0.04,       # setup ORG in Stocker et al. 2020 GMD
+  kphio                 = 0.08,       # setup ORG in Stocker et al. 2020 GMD
   kphio_par_a           = 0.0,        # set to zero to disable temperature-dependence of kphio
   kphio_par_b           = 20.0,
   soilm_thetastar       = 0.6 * 240,  # to recover old setup with soil moisture stress
@@ -29,8 +29,8 @@ pars <- list(
   r_sapw                = 2*0.044000,
   exurate               = 0.003000,
   
-  k_decay_leaf          = 1,
-  k_decay_root          = 1,
+  k_decay_leaf          = 1.5,
+  k_decay_root          = 1.5,
   k_decay_labl          = 1,
   k_decay_sapw          = 0.01,
   
@@ -612,7 +612,7 @@ df_rr2  <- log(df_exp2[2,]/df_exp2[1,]) |>
 ggplot() +
   geom_point(aes(variable, response), data = df_rr2, size = 2, color = "grey50") +
   geom_point(aes(variable, response), data = df_rr, size = 2) +
-  geom_hline( yintercept = 0.0, size = 0.5, linetype = "dotted" ) +
+  geom_hline( yintercept = 0.0, linewidth = 0.5, linetype = "dotted" ) +
   labs(x = "Variable", y = "Log Response Ratio") +
   coord_flip() +
   labs(title = "cnmodel prediction", subtitle = "Response to eCO2")
