@@ -56,8 +56,7 @@ contains
 
         ! constant turnover rate
         droot = 1.0 - exp( -params_pft_plant(pft)%k_decay_root )
-        ! dwood = 1.0 - exp( -params_pft_plant(pft)%k_decay_wood )
-        dwood = 1.0 - exp( -k_decay_wood )
+        dwood = 1.0 - exp( -params_pft_plant(pft)%k_decay_sapw )
         dlabl = 1.0 - exp( -params_pft_plant(pft)%k_decay_labl )
         dseed = 1.0 - exp( -params_pft_plant(pft)%k_decay_root  * 3.0)
 

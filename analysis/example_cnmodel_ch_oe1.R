@@ -32,10 +32,10 @@ pars <- list(
   k_decay_leaf          = 1,
   k_decay_root          = 1,
   k_decay_labl          = 1,
-  k_decay_sapw          = 1,
+  k_decay_sapw          = 0.01,
   
   r_cton_root           = 37.0000,
-  r_cton_wood           = 100.000,
+  r_cton_wood           = 350,
   r_cton_seed           = 15.0000,
   nv_vcmax25            = 0.02 * 13681.77, # see ln_cn_review/vignettes/analysis_leafn_vcmax_field.Rmd, l.695; previously: 5000.0,
   ncw_min               = 0.056, #0.08 * 1.116222, # see ln_cn_review/vignettes/analysis_leafn_vcmax_field.Rmd, l.691; previously used: 0.056,

@@ -54,9 +54,8 @@ module md_plant_cnmodel
 
     ! new for cnmodel
     real    :: k_decay_leaf        ! base leaf decay constant [year-1]
-    real    :: k_decay_sapw        ! sapwood decay constant [year-1]
+    real    :: k_decay_sapw        ! (sap)wood decay constant [year-1]
     real    :: k_decay_root        ! root decay constant [year-1]
-    real    :: k_decay_wood        ! wood decay constant [year-1]
     real    :: k_decay_labl        ! labile pool decay constant [year-1]
     real    :: r_cton_root         ! C:N ratio in roots (gC/gN)
     real    :: r_ntoc_root         ! N:C ratio in roots (inverse of 'r_cton_root', gN/gC)
@@ -621,15 +620,15 @@ contains
     ! root decay constant [days], read in as [years-1], central value: 1.04 (Shan et al., 1993; see Li et al., 2014)  
     out_getpftparams%k_decay_root = myinterface%params_calib%k_decay_root / ndayyear 
 
-    ! ! wood decay constant [days], read in as [years-1], 1.0/100 
-    ! out_getpftparams%k_decay_wood = myinterface%params_calib%k_decay_wood / ndayyear 
+    ! wood decay constant [days], read in as [years-1], 1.0/100 
+    out_getpftparams%k_decay_sapw = myinterface%params_calib%k_decay_sapw / ndayyear 
 
     ! root decay constant [days], read in as [years-1], central value: 1.04 (Shan et al., 1993; see Li et al., 2014)  
     out_getpftparams%k_decay_labl = myinterface%params_calib%k_decay_labl / ndayyear 
 
-    ! ! wood C:N and N:C ratio (gC/gN and gN/gC)
-    ! out_getpftparams%r_cton_wood = myinterface%params_calib%r_cton_wood
-    ! out_getpftparams%r_ntoc_wood = 1.0 / out_getpftparams%r_cton_wood
+    ! wood C:N and N:C ratio (gC/gN and gN/gC)
+    out_getpftparams%r_cton_wood = myinterface%params_calib%r_cton_wood
+    out_getpftparams%r_ntoc_wood = 1.0 / out_getpftparams%r_cton_wood
 
     ! root C:N and N:C ratio (gC/gN and gN/gC)
     out_getpftparams%r_cton_root = myinterface%params_calib%r_cton_root
