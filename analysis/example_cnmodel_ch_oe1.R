@@ -29,10 +29,10 @@ pars <- list(
   r_sapw                = 2*0.044000,
   exurate               = 0.003000,
   
-  k_decay_leaf          = 3,
-  k_decay_root          = 3,
-  k_decay_labl          = 3,
-  k_decay_sapw          = 3,
+  k_decay_leaf          = 1,
+  k_decay_root          = 1,
+  k_decay_labl          = 1,
+  k_decay_sapw          = 1,
   
   r_cton_root           = 37.0000,
   r_cton_wood           = 100.000,
@@ -288,20 +288,20 @@ gg1 / gg2 / gg3 / gg4
 
 gg5 <- output |>  
   as_tibble() |> 
-  ggplot(aes(date, npp/gpp)) + 
+  ggplot(aes(date, cleaf)) + 
   geom_line()
 gg6 <- output |> 
   as_tibble() |> 
-  ggplot(aes(date, x2)) + 
+  ggplot(aes(date, croot)) + 
   geom_line() +
   ylim(0,300)
 gg7 <- output |> 
   as_tibble() |> 
-  ggplot(aes(date, x3)) + 
+  ggplot(aes(date, cwood)) + 
   geom_line()
 gg8 <- output |> 
   as_tibble() |> 
-  ggplot(aes(date, x4)) + 
+  ggplot(aes(date, clabl)) + 
   geom_line()
 
 gg5 / gg6 / gg7 / gg8

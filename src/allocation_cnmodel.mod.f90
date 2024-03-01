@@ -132,6 +132,12 @@ contains
     real    :: max_dcleaf_n_constraint
     real    :: max_dcroot_n_constraint
 
+    ! xxx
+    real, parameter :: falloc_wood = 0.5 ! 0.47
+    real, parameter :: r_ntoc_wood = 1.0 / 350.0
+    real :: dcwood 
+    real :: dnwood
+
     ! xxx debug
     real :: tmp
 
@@ -148,14 +154,6 @@ contains
       if ( tile(lu)%plant(pft)%plabl%c%c12 > eps .and. tile(lu)%plant(pft)%plabl%n%n14 > eps ) then
 
         if (params_pft_plant(pft)%grass) then
-
-          ! initialise (to make sure)
-          dcleaf = 0.0
-          dcroot = 0.0
-          ! dcseed = 0.0
-          ! dnseed = 0.0
-          drgrow = 0.0
-
           !------------------------------------------------------------------
           ! Update leaf traits
           !------------------------------------------------------------------
@@ -185,10 +183,21 @@ contains
             avl%c%c12 = min(avl%c%c12, max_dcleaf_n_constraint, max_dcroot_n_constraint)
           end if
 
+          !------------------------------------------------------------------
+          ! Set allocation fraction to wood
+          !------------------------------------------------------------------
+          dcwood = falloc_wood * avl%c%c12
+          dnwood = dcwood * r_ntoc_wood
+          avl%c%c12 = (1.0 - falloc_wood) * avl%c%c12
+
           ! amount to be allocated as real number
           ! dcseed = f_seed * params_plant%growtheff * avl%c%c12
           ! dnseed = min(avl%n%n14, dcseed * params_pft_plant(pft)%r_ntoc_seed)
 
+          !------------------------------------------------------------------
+          ! Set remaining allocation fractions after wood
+          !------------------------------------------------------------------
+          ! leaf allocation fraction was determined in the previous time step (dcleaf is a "save variable")
           dcleaf = frac_leaf         * params_plant%growtheff * avl%c%c12
           dcroot = (1.0 - frac_leaf) * params_plant%growtheff * avl%c%c12
           dnroot = dcroot * params_pft_plant(pft)%r_ntoc_root
@@ -207,6 +216,26 @@ contains
           ! dclabl = (1.0 / params_plant%growtheff) * dcseed
           ! tile(lu)%plant(pft)%plabl%c%c12 = tile(lu)%plant(pft)%plabl%c%c12 - dclabl
           ! tile_fluxes(lu)%plant(pft)%drgrow = tile_fluxes(lu)%plant(pft)%drgrow + dclabl - dcseed
+
+          !-------------------------------------------------------------------
+          ! WOOD ALLOCATION
+          !-------------------------------------------------------------------
+          if (dcwood > 0.0) then
+
+            call allocate_wood( &
+              pft, &
+              dcwood, &
+              dnroot, &
+              tile(lu)%plant(pft)%pwood%c%c12, &
+              tile(lu)%plant(pft)%pwood%n%n14, &
+              tile(lu)%plant(pft)%plabl%c%c12, &
+              tile(lu)%plant(pft)%plabl%n%n14, &
+              tile_fluxes(lu)%plant(pft)%drgrow, &
+              myinterface%steering%closed_nbal, &
+              tile_fluxes(lu)%plant(pft)%dnup_fix &
+              )
+
+          end if
 
           !-------------------------------------------------------------------
           ! LEAF ALLOCATION
@@ -613,6 +642,64 @@ contains
     end if
 
   end subroutine allocate_root
+
+
+  subroutine allocate_wood( pft, mydcwood, mydnwood, cwood, nwood, clabl, nlabl, rgrow, closed_nbal, nfix )
+    !///////////////////////////////////////////////////////////////////
+    ! WOOD ALLOCATION
+    ! Sequence of steps:
+    ! - determine wood C and N increments based on remaining labile C and N
+    ! - update wood C and N
+    ! - update labile C and N
+    !-------------------------------------------------------------------
+    ! arguments
+    integer, intent(in) :: pft
+    real, intent(in)   :: mydcwood
+    real, intent(in)   :: mydnwood
+    real, intent(inout) :: cwood, nwood
+    real, intent(inout) :: clabl, nlabl
+    real, intent(inout)  :: rgrow
+    logical, intent(in) :: closed_nbal
+    real, intent(inout)  :: nfix
+
+    ! local variables
+    real :: dclabl
+
+    ! update wood pools
+    cwood = cwood + mydcwood
+    nwood = nwood + mydnwood
+
+    ! depletion of labile C pool is enhanced by growth respiration
+    dclabl = (1.0 / params_plant%growtheff) * mydcwood
+
+    ! substract from labile pools
+    clabl  = clabl - dclabl
+    nlabl  = nlabl - mydnwood
+
+    ! growth respiration
+    rgrow = rgrow + dclabl - mydcwood
+
+    if ( clabl < -1.0 * eps ) then
+      stop 'ALLOCATE_WOOD: trying to remove too much from labile pool: wood C'
+    else if ( clabl < 0.0 ) then
+      ! numerical imprecision
+      ! print*,'numerical imprecision?'
+      ! stop 'allocate wood'
+      clabl = 0.0
+    end if
+
+    if (closed_nbal) then
+      if ( nlabl < -1.0 * eps ) then
+        stop 'ALLOCATE_WOOD: trying to remove too much from labile pool: wood N'
+      else if ( nlabl < 0.0 ) then
+        ! more N used for wood growth than available in labile N pool
+        ! assume an implied (unspecified) N source, accounted as N fixation
+        nfix = nfix - nlabl
+        nlabl = 0.0
+      end if
+    end if
+
+  end subroutine allocate_wood
 
 
   function calc_ft_growth( xx ) result( yy )

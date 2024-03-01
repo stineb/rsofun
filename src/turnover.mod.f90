@@ -32,7 +32,9 @@ contains
     ! local variables
     integer :: pft
     integer :: lu
-    real :: dlabl, dleaf, droot, dseed
+    real :: dlabl, dleaf, droot, dseed, dwood
+
+    real, parameter :: k_decay_wood = 1.0 / 100.0
 
     pftloop: do pft=1,npft
 
@@ -54,6 +56,8 @@ contains
 
         ! constant turnover rate
         droot = 1.0 - exp( -params_pft_plant(pft)%k_decay_root )
+        ! dwood = 1.0 - exp( -params_pft_plant(pft)%k_decay_wood )
+        dwood = 1.0 - exp( -k_decay_wood )
         dlabl = 1.0 - exp( -params_pft_plant(pft)%k_decay_labl )
         dseed = 1.0 - exp( -params_pft_plant(pft)%k_decay_root  * 3.0)
 
@@ -110,6 +114,31 @@ contains
       if (verbose) print*, '              --- balance: '
       if (verbose) print*, '                  d(clitt + croot)             = ', cbal1
       if (verbose) print*, '                  d(nlitt + nroot)             = ', nbal1
+      if (baltest .and. abs(cbal1) > eps) stop 'balance 1 not satisfied'
+      if (baltest .and. abs(nbal1) > eps) stop 'balance 1 not satisfied'
+
+      !--------------------------------------------------------------
+      ! Calculate wood turnover in this day 
+      !--------------------------------------------------------------
+      if (verbose) print*, 'calling turnover_wood() ... '
+      if (verbose) print*, '              with state variables:'
+      if (verbose) print*, '              pwood = ', tile(lu)%plant(pft)%pwood
+      if (verbose) print*, '              plitt = ', tile(lu)%soil%plitt_as
+      if (verbose) cbal1 = tile(lu)%plant(pft)%pwood%c%c12 + tile(lu)%soil%plitt_as%c%c12
+      if (verbose) nbal1 = tile(lu)%plant(pft)%plabl%n%n14 + tile(lu)%plant(pft)%pwood%n%n14 + tile(lu)%soil%plitt_as%n%n14
+      !--------------------------------------------------------------
+      if ( dwood > 0.0 .and. tile(lu)%plant(pft)%pwood%c%c12 > 0.0  ) call turnover_wood( dwood, tile(lu), pft )
+      !--------------------------------------------------------------
+      if (verbose) print*, '              ==> returned: '
+      if (verbose) print*, '              pwood = ', tile(lu)%plant(pft)%pwood
+      if (verbose) print*, '              plitt = ', tile(lu)%soil%plitt_as
+      if (verbose) cbal2 = tile(lu)%plant(pft)%pwood%c%c12 + tile(lu)%soil%plitt_as%c%c12
+      if (verbose) nbal2 = tile(lu)%plant(pft)%plabl%n%n14 + tile(lu)%plant(pft)%pwood%n%n14 + tile(lu)%soil%plitt_as%n%n14
+      if (verbose) cbal1 = cbal2 - cbal1
+      if (verbose) nbal1 = nbal2 - nbal1
+      if (verbose) print*, '              --- balance: '
+      if (verbose) print*, '                  d(clitt + cwood)             = ', cbal1
+      if (verbose) print*, '                  d(nlitt + nwood)             = ', nbal1
       if (baltest .and. abs(cbal1) > eps) stop 'balance 1 not satisfied'
       if (baltest .and. abs(nbal1) > eps) stop 'balance 1 not satisfied'
 
@@ -323,9 +352,46 @@ contains
   end subroutine turnover_root
 
 
+  subroutine turnover_wood( dwood, tile, pft )
+    !//////////////////////////////////////////////////////////////////
+    ! Execute turnover of fraction dwood for wood pool
+    !------------------------------------------------------------------
+    ! arguments
+    real, intent(in)    :: dwood
+    type( tile_type ), intent(inout)  :: tile
+    integer, intent(in) :: pft
+
+    call orgmv( orgfrac( dwood, tile%plant(pft)%pwood ), &
+                tile%plant(pft)%pwood, &
+                tile%soil%plitt_as, &
+                scale = real(tile%plant(pft)%nind) )
+
+    ! ! local variables
+    ! type(orgpool) :: rm_turn
+
+    ! ! determine absolute turnover
+    ! rm_turn = orgfrac( dwood, tile%plant(pft)%pwood ) ! wood turnover
+
+    ! ! reduce leaf mass and wood mass
+    ! call orgsub( rm_turn, tile%plant(pft)%pwood )
+
+    ! ! add all organic (fixed) C to litter
+    ! ! call cmvRec( rm_turn%c, rm_turn%c, tile%soil%plitt_bg%c, outaCveg2lit(pft,jpngr), scale = real(tile%plant(pft)%nind))
+    ! call cmv( rm_turn%c, rm_turn%c, tile%soil%plitt_bg%c, scale = real(tile%plant(pft)%nind) )
+
+    ! ! retain fraction of N
+    ! call nmv( nfrac( params_plant%f_nretain, rm_turn%n ), rm_turn%n, tile%plant(pft)%plabl%n )
+
+    ! ! rest goes to litter
+    ! ! call nmvRec( rm_turn%n, rm_turn%n, tile%soil%plitt_bg%n, outaNveg2lit(pft,jpngr), scale = real(tile%plant(pft)%nind) )
+    ! call nmv( rm_turn%n, rm_turn%n, tile%soil%plitt_bg%n, scale = real(tile%plant(pft)%nind) )
+
+  end subroutine turnover_wood
+
+
   subroutine turnover_seed( dseed, tile, pft )
     !//////////////////////////////////////////////////////////////////
-    ! Execute turnover of fraction dseed for root pool
+    ! Execute turnover of fraction dseed for seed pool
     !------------------------------------------------------------------
     ! arguments
     real, intent(in)    :: dseed
