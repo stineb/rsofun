@@ -175,6 +175,13 @@ module md_interface_cnmodel
     real :: npp_wood
     real :: cwood
     real :: nwood
+    real :: rleaf
+    real :: rwood
+    real :: rroot
+    real :: rcex
+    real :: rhet
+    real :: cresv
+    real :: nresv
     real :: x1
     real :: x2
     real :: x3

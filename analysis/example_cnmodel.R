@@ -10,9 +10,9 @@ library(lubridate)
 pars <- list(
   
   # P-model
-  kphio                 = 0.04998,    # setup ORG in Stocker et al. 2020 GMD
-  kphio_par_a           = 0.0,        # set to zero to disable temperature-dependence of kphio
-  kphio_par_b           = 1.0,
+  kphio                 = 0.06,       # setup ORG in Stocker et al. 2020 GMD
+  kphio_par_a           = -0.001,        # set to zero to disable temperature-dependence of kphio
+  kphio_par_b           = 20.0,
   soilm_thetastar       = 0.6 * 240,  # to recover old setup with soil moisture stress
   soilm_betao           = 0.0,
   beta_unitcostratio    = 146.0,
@@ -28,19 +28,19 @@ pars <- list(
   r_sapw                = 2*0.044000,
   exurate               = 0.003000,
   
-  k_decay_leaf          = 1.90000,
-  k_decay_root          = 1.90000,
-  k_decay_labl          = 1.90000,
-  k_decay_sapw          = 1.90000,
+  k_decay_leaf          = 3,
+  k_decay_root          = 3,
+  k_decay_labl          = 3,
+  k_decay_sapw          = 0.01,
   
   r_cton_root           = 37.0000,
-  r_cton_wood           = 100.000,
+  r_cton_wood           = 350,
   r_cton_seed           = 15.0000,
-  nv_vcmax25            = 5000.0,
-  ncw_min               = 0.056,
-  r_n_cw_v              = 0.2,
-  r_ctostructn_leaf     = 80.0000,
-  kbeer                 = 0.400000,
+  nv_vcmax25            = 0.02 * 13681.77, # see ln_cn_review/vignettes/analysis_leafn_vcmax_field.Rmd, l.695; previously: 5000.0,
+  ncw_min               = 0.056, #0.08 * 1.116222, # see ln_cn_review/vignettes/analysis_leafn_vcmax_field.Rmd, l.691; previously used: 0.056,
+  r_n_cw_v              = 1.23223, #0, # assumed that LMA is independent of Vcmax25; previously: 0.1,
+  r_ctostructn_leaf     = 40, #1.3 * 45.84125, # see ln_cn_review/vignettes/analysis_leafn_vcmax_field.Rmd, l.699; previously used: 80.0000,
+  kbeer                 = 0.500000,
   
   # Phenology (should be PFT-specific)
   gddbase               = 5.0,
@@ -115,159 +115,213 @@ pars <- list(
   # simple N uptake module parameters
   nuptake_kc            = 250,
   nuptake_kv            = 5,
-  nuptake_vmax          = 0.2
+  nuptake_vmax          = 0.2,
+  
+  # wood allocation fraction
+  falloc_wood           = 0.0
   
 )
+## CH-Oe1 forcing -------------------
+filnam <- "data-raw/df_drivers_ch_oe1.rds"
+overwrite <- FALSE
 
-
-## Forcing ------------------------
-## add new required columns to forcing 
-tmp <- rsofun::p_model_drivers |> 
-  mutate(forcing = purrr::map(forcing, ~mutate(., 
-                                               fharv = 0.0,
-                                               dno3 = 0.1,
-                                               dnh4 = 0.1
-  )))
-
-## interactive C-N cycling
-tmp$params_siml[[1]]$c_only <- FALSE
-
-## no soil moisture stress
-tmp$params_siml[[1]]$soilmstress <- FALSE
-
-### Harvesting and seed input ----------
-use_cseed <- 0 # 100
-cn_seed <- 20
-use_nseed <- use_cseed / cn_seed
-
-tmp$forcing[[1]] <- tmp$forcing[[1]] |>
-  mutate(fharv = ifelse(month(date) == 7 & mday(date) == 15, 0.0, 0.0),
-         cseed = ifelse(month(date) == 3 & mday(date) == 15, use_cseed, 0.0),
-         nseed = ifelse(month(date) == 3 & mday(date) == 15, use_nseed, 0.0)) 
-
-## check visually
-tmp$forcing[[1]] |>
-  ggplot(aes(date, fharv)) +
-  geom_line()
-
-## no spinup, 1 year transient run
-tmp$params_siml[[1]]$spinupyears <- 2000
-tmp$params_siml[[1]]$recycle <- 5
-
-
-# ## Synthetic forcing: Mean seasonal cycle -----------------------
-# tmp$forcing[[1]] <- tmp$forcing[[1]] |>
-#   filter(!(lubridate::month(date) == 2 & lubridate::mday(date) == 29))
-# df_meanann <- tmp$forcing[[1]] |>
-#   mutate(doy = lubridate::yday(date)) |>
-#   group_by(doy) |>
-#   summarise(across(where(is.double), .fns = mean)) |>
-#   filter(!(doy == 366))
-# nyears <- tmp$forcing[[1]] |>
-#   mutate(year = lubridate::year(date)) |>
-#   pull(year) |>
-#   unique() |>
-#   length()
-# tmp <- purrr::map_dfr(
-#   as.list(seq(nyears)),
-#   ~{df_meanann}) |>
-#   mutate(date = tmp$forcing[[1]]$date)
-
-## Synthetic forcing: Constant climate in all days -----------------------
-df_growingseason_mean <- tmp$forcing[[1]] |>
-  filter(temp > 5) |>
-  summarise(across(where(is.double), .fns = mean))
-df_mean <- tmp$forcing[[1]] |>
-  summarise(across(where(is.double), .fns = mean))
-
-tmp$forcing[[1]] <- tmp$forcing[[1]] |>
-  mutate(temp = df_growingseason_mean$temp,
-         prec = df_mean$prec,
-         vpd = df_growingseason_mean$vpd,
-         ppfd = df_mean$ppfd,
-         patm = df_growingseason_mean$patm,
-         ccov_int = df_growingseason_mean$ccov_int,
-         ccov = df_growingseason_mean$ccov,
-         snow = df_mean$snow,
-         rain = df_mean$rain,
-         fapar = df_mean$fapar,
-         co2 = df_growingseason_mean$co2,
-         tmin = df_growingseason_mean$tmin,
-         tmax = df_growingseason_mean$tmax,
+if (!file.exists(filnam) || overwrite){
+  
+  df_drivers_ch_oe1 <- read_rds("~/data/FluxDataKit/rsofun_driver_data_clean.rds") |> 
+    filter(sitename == "CH-Oe1")
+  
+  df_ndep <- ingest(
+    df_drivers_ch_oe1 |>
+      unnest(site_info) |>
+      select(sitename, lon, lat) |>
+      mutate(year_start = min(lubridate::year(df_drivers_ch_oe1$forcing[[1]]$date)),
+             year_end = max(lubridate::year(df_drivers_ch_oe1$forcing[[1]]$date))),
+    source    = "ndep",
+    timescale = "y",
+    dir       = "~/data/ndep_lamarque/",
+    verbose   = FALSE
   )
-
-## Repeat last year's forcing N times -----------------------
-n_ext <- 100
-df_tmp <- tmp$forcing[[1]]
-for (idx in seq(n_ext)){
-  df_tmp <- bind_rows(
-    df_tmp,
-    df_tmp |>
-      tail(365) |>
-      mutate(date = date + years(1))
-  )
-}
-tmp$forcing[[1]] <- df_tmp
-
-
-## increase CO2 from 2010 -----------------------
-elevate_co2 <- function(day){
-  yy <- 2 - 1 / (1 + exp(0.03*(day-14610)))
-  return(yy)
+  
+  df_ndep_mean <- df_ndep |>
+    unnest(data) |>
+    summarise(noy = mean(noy), nhx = mean(nhx))
+  
+  ## add new required columns to forcing
+  use_cseed <- 5
+  cn_seed <- 20
+  use_nseed <- use_cseed / cn_seed
+  
+  df_drivers_ch_oe1 <- df_drivers_ch_oe1 |>
+    mutate(forcing = purrr::map(forcing, ~mutate(.,
+                                                 fharv = 0.0,
+                                                 dno3 = df_ndep_mean$noy,
+                                                 dnh4 = df_ndep_mean$nhx)),
+           forcing = purrr::map(forcing, ~mutate(.,
+                                                 fharv = ifelse(month(date) == 7 & mday(date) == 15, 0.0, 0.0),
+                                                 cseed = ifelse(month(date) == 2 & mday(date) == 15, use_cseed, 0.0),
+                                                 nseed = ifelse(month(date) == 2 & mday(date) == 15, use_nseed, 0.0))))
+  
+  df_drivers_ch_oe1$params_siml[[1]]$spinupyears <- 2002
+  df_drivers_ch_oe1$params_siml[[1]]$recycle <- 5
+  
+  write_rds(df_drivers_ch_oe1, file = filnam)
+  
+} else {
+  
+  df_drivers_ch_oe1 <- readRDS(filnam)
+  
 }
 
-ggplot() +
-  geom_function(fun = elevate_co2) +
-  xlim(12000, 16000) +
-  geom_vline(xintercept = 0, linetype = "dotted")
+df_drivers <- df_drivers_ch_oe1
 
-tmp$forcing[[1]] <- tmp$forcing[[1]] |>
-  mutate(date2 = as.numeric(date)) |>
-  mutate(co2 = co2 * elevate_co2(date2)) |>
-  select(-date2)
+## Define whether to use interactive C-N cycling
+df_drivers$params_siml[[1]]$c_only <- FALSE
 
-tmp$forcing[[1]] |>
-  head(5000) |>
-  ggplot(aes(date, co2)) +
-  geom_line()
+### Synthetic forcing: Mean seasonal cycle -----------------------
+df_drivers$forcing[[1]] <- df_drivers$forcing[[1]] |>
+  filter(!(lubridate::month(date) == 2 & lubridate::mday(date) == 29))
+df_meanann <- df_drivers$forcing[[1]] |>
+  mutate(doy = lubridate::yday(date)) |>
+  group_by(doy) |>
+  summarise(across(where(is.double), .fns = mean)) |>
+  filter(!(doy == 366))
+nyears <- df_drivers$forcing[[1]] |>
+  mutate(year = lubridate::year(date)) |>
+  pull(year) |>
+  unique() |>
+  length()
+df_drivers$forcing[[1]] <- purrr::map_dfr(
+  as.list(seq(nyears)),
+  ~{df_meanann}) |>
+  mutate(date = df_drivers$forcing[[1]]$date)
 
-
-# ## increase Ndep from 2010 -----------------------
-# elevate_ndep <- function(day){
-#   yy <- 1 - 1 / (1 + exp(0.03*(day-14610)))
-#   return(yy)
-# }
-# 
-# ggplot() +
-#   geom_function(fun = elevate_ndep) +
-#   xlim(12000, 16000) +
-#   geom_vline(xintercept = 0, linetype = "dotted")
-# 
-# tmp$forcing[[1]] <- tmp$forcing[[1]] |>
-#   mutate(date2 = as.numeric(date)) |>
-#   mutate(dno3 = dno3 + 1.0 * elevate_ndep(date2),
-#          dnh4 = dnh4 + 1.0 * elevate_ndep(date2)) |>
-#   select(-date2)
-# 
-# tmp$forcing[[1]] |>
-#   head(3000) |>
-#   ggplot(aes(date, dno3 + dnh4)) +
-#   geom_line()
 
 ## Model run ------------------------
 output <- runread_cnmodel_f(
-  tmp,
+  df_drivers,
   par = pars
-) 
+)
 
 output <- output$data[[1]]
 
 ## Visualisations  ------------------------
 ### Time series ---------------------------
+
+# - LAI
 gg1 <- output |> 
   as_tibble() |> 
   ggplot(aes(date, lai)) + 
-  # ggplot(aes(date, (1-exp(-pars$kbeer * lai)) )) + 
+  geom_line() +
+  labs(x = "Date", y = expression(paste("LAI (m"^2, " m"^-2, ")")))
+
+# - GPP
+gg2 <- output |> 
+  as_tibble() |> 
+  ggplot(aes(date, gpp)) + 
+  geom_line() +
+  labs(x = "Date", y = expression(paste("GPP (gC m"^-2, " d"^-1, ")")))
+
+# - NEE
+gg3 <- output |> 
+  as_tibble() |> 
+  ggplot(aes(date, cumsum(gpp - rleaf - rwood - rroot - rcex - rhet))) + 
+  geom_line() +
+  labs(x = "Date", y = expression(paste("NEE (gC m"^-2, " d"^-1, ")")))
+
+# - cumulative NEE
+gg4 <- output |> 
+  as_tibble() |> 
+  ggplot(aes(date, cumsum(gpp - rleaf - rwood - rroot - rcex - rhet))) + 
+  geom_line() +
+  labs(x = "Date", y = expression(paste("Cumulative NEE (gC m"^-2, " d"^-1, ")")))
+
+# - NPP
+gg5 <- output |> 
+  as_tibble() |> 
+  ggplot(aes(date, npp)) + 
+  geom_line() +
+  labs(x = "Date", y = expression(paste("NPP (gC m"^-2, " d"^-1, ")")))
+
+# - NPP fraction to leaves
+gg6 <- output |> 
+  as_tibble() |> 
+  ggplot(aes(date, npp_leaf/npp)) + 
+  geom_line() +
+  labs(x = "Date", y = "Fraction of leaf BP")
+
+# - NPP fraction to root
+gg7 <- output |> 
+  as_tibble() |> 
+  ggplot(aes(date, npp_root/npp)) + 
+  geom_line() +
+  labs(x = "Date", y = "Fraction of root BP")
+
+# - NPP fraction to wood
+gg8 <- output |> 
+  as_tibble() |> 
+  ggplot(aes(date, npp_wood/npp)) + 
+  geom_line() +
+  labs(x = "Date", y = "Fraction of wood BP")
+
+# - BPE
+gg9 <- output |> 
+  mutate(year = lubridate::year(date)) |> 
+  group_by(year) |> 
+  summarise(npp = sum(npp),
+            gpp = sum(gpp)) |> 
+  ggplot(aes(year, npp/gpp)) + 
+  geom_line() +
+  labs(x = "Year", y = "BPE (unitless)")
+
+# - Cleaf
+gg10 <- output |> 
+  ggplot(aes(date, cleaf)) + 
+  geom_line() +
+  labs(x = "Year", y = expression(paste("Leaf C (gC m"^-2, ")")))
+
+# - Croot
+gg11 <- output |> 
+  ggplot(aes(date, croot)) + 
+  geom_line() +
+  labs(x = "Year", y = expression(paste("Root C (gC m"^-2, ")")))
+
+# - Clabl
+gg12 <- output |> 
+  ggplot(aes(date, clabl)) + 
+  geom_line() +
+  labs(x = "Year", y = expression(paste("Labile C (gC m"^-2, ")")))
+
+# - Cresv
+gg13 <- output |> 
+  ggplot(aes(date, cresv)) + 
+  geom_line() +
+  labs(x = "Year", y = expression(paste("Reserves C (gC m"^-2, ")")))
+
+# - RMF
+gg10 <- output |> 
+  as_tibble() |> 
+  ggplot(aes(date, croot/(croot + cleaf + cwood))) + 
+  geom_line() +
+  labs(x = "Date", y = "Fraction of wood BP")
+
+# - Clitt
+# - Csoil
+# - CNleaf
+# - CNlitt
+# - CNsoil
+# - Ninorg
+# - Netmin
+# - Nup
+# - Nloss
+# - tsoil
+
+
+
+
+
+gg1 <- output |> 
+  as_tibble() |> 
+  ggplot(aes(date, lai)) + 
   geom_line()
 gg2 <- output |> 
   as_tibble() |> 
