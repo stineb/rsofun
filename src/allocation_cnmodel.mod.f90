@@ -69,6 +69,8 @@ contains
     real :: dcleaf
     real :: dnleaf
     real :: dcroot
+    real :: dcwood 
+    real :: dnwood
     ! real :: dcseed
     ! real :: dnseed
     real :: dnroot
@@ -132,12 +134,6 @@ contains
     real    :: max_dcleaf_n_constraint
     real    :: max_dcroot_n_constraint
 
-    ! xxx
-    real, parameter :: falloc_wood = 0.5 ! 0.47
-    real, parameter :: r_ntoc_wood = 1.0 / 350.0
-    real :: dcwood 
-    real :: dnwood
-
     ! xxx debug
     real :: tmp
 
@@ -188,7 +184,7 @@ contains
           !------------------------------------------------------------------
           dcwood = params_pft_plant(pft)%falloc_wood * avl%c%c12
           dnwood = dcwood * params_pft_plant(pft)%r_ntoc_wood
-          avl%c%c12 = (1.0 - falloc_wood) * avl%c%c12
+          avl%c%c12 = (1.0 - params_pft_plant(pft)%falloc_wood) * avl%c%c12
 
           ! amount to be allocated as real number
           ! dcseed = f_seed * params_plant%growtheff * avl%c%c12
