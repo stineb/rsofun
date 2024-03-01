@@ -94,11 +94,12 @@ module md_tile_cnmodel
     real :: r_cton_leaf         ! leaf C:N ratio [gC/gN] 
     real :: r_ntoc_leaf         ! leaf N:C ratio [gN/gC]
 
-    type(orgpool) :: pleaf     ! leaf biomass [gC/ind.] (=lm_ind)
-    type(orgpool) :: proot     ! root biomass [gC/ind.] (=rm_ind)
-    type(orgpool) :: psapw     ! sapwood biomass [gC/ind.] (=sm_ind)
-    type(orgpool) :: pwood     ! heartwood (non-living) biomass [gC/ind.] (=hm_ind)
-    type(orgpool) :: plabl     ! labile pool, temporary storage of N and C [gC/ind.] (=bm_inc but contains also N) 
+    type(orgpool) :: pleaf     ! leaf biomass
+    type(orgpool) :: proot     ! root biomass 
+    type(orgpool) :: presv     ! reserves pool 
+    type(orgpool) :: pwood     ! wood biomass
+    type(orgpool) :: plabl     ! labile pool
+    type(orgpool) :: pseed     ! seed pool
 
   end type canopy_type
 
@@ -322,9 +323,10 @@ contains
     ! orgpools
     call orginit( canopy%pleaf )
     call orginit( canopy%proot )
-    call orginit( canopy%psapw )
     call orginit( canopy%pwood )
+    call orginit( canopy%presv )
     call orginit( canopy%plabl )
+    call orginit( canopy%pseed )
 
   end subroutine init_tile_canopy
 
@@ -725,9 +727,10 @@ contains
     do lu=1,nlu
       call orginit( tile(lu)%canopy%pleaf )
       call orginit( tile(lu)%canopy%proot )
-      call orginit( tile(lu)%canopy%psapw )
       call orginit( tile(lu)%canopy%pwood )
       call orginit( tile(lu)%canopy%plabl )
+      call orginit( tile(lu)%canopy%presv )
+      call orginit( tile(lu)%canopy%pseed )
     end do
 
 
@@ -806,9 +809,10 @@ contains
 
       tile(lu)%canopy%pleaf = orgplus( tile(lu)%canopy%pleaf, tile(lu)%plant(pft)%pleaf )
       tile(lu)%canopy%proot = orgplus( tile(lu)%canopy%proot, tile(lu)%plant(pft)%proot )
-      tile(lu)%canopy%psapw = orgplus( tile(lu)%canopy%psapw, tile(lu)%plant(pft)%psapw )
       tile(lu)%canopy%pwood = orgplus( tile(lu)%canopy%pwood, tile(lu)%plant(pft)%pwood )
       tile(lu)%canopy%plabl = orgplus( tile(lu)%canopy%plabl, tile(lu)%plant(pft)%plabl )
+      tile(lu)%canopy%presv = orgplus( tile(lu)%canopy%presv, tile(lu)%plant(pft)%presv )
+      tile(lu)%canopy%pseed = orgplus( tile(lu)%canopy%pseed, tile(lu)%plant(pft)%pseed )
 
     end do
 

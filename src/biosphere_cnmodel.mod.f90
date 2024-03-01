@@ -218,7 +218,7 @@ contains
         if (verbose) print*, '              with state variables:'
         if (verbose) print*, '              pleaf = ', tile(1)%plant(1)%pleaf
         if (verbose) print*, '              proot = ', tile(1)%plant(1)%proot
-        if (verbose) print*, '              psapw = ', tile(1)%plant(1)%psapw
+        if (verbose) print*, '              pwood = ', tile(1)%plant(1)%pwood
         if (verbose) print*, '              plabl = ', tile(1)%plant(1)%plabl
         if (verbose) cbal1 = tile(1)%plant(1)%plabl%c%c12
         !----------------------------------------------------------------
