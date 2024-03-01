@@ -39,7 +39,7 @@ $V_\mathrm{cmax}$ at standard temperature (25°C, $V_\mathrm{cmax25}$).
 $$
 \begin{aligned}
 N_v &= b_v V_{cmax25} \\
-    &= b_v f_t^{-1} c_0 \left(1 - e^{-kL} \right)
+    &= \underbrace{b_v f_t^{-1} c_0}_{c_0^\ast} \left(1 - e^{-kL} \right)
 \end{aligned}
 $$
 At the leaf-level, the amount of metabolic N per unit leaf area is 
@@ -66,7 +66,7 @@ $$
 \begin{aligned}
 N_\mathrm{fol} &= L (N_v^l + N_s^l) \\
                &= a_s L + (1 + b_s)N_v \\
-               &= a_s L + (1 + b_s) c_0 b_v f_t^{-1} \left(1 - e^{-kL} \right)
+               &= a_s L + (1 + b_s) c_0^\ast \left(1 - e^{-kL} \right)
 \end{aligned}
 $$
 
@@ -84,7 +84,7 @@ C_\mathrm{fol} &= C^l L \\
                &= L b_c N_s^l \\
                &= L b_c (a_s + b_s N_v^l) \\
                &= L b_c a_s + b_c b_s N_v \\ 
-               &= L b_c a_s + b_c b_s c_0 b_v f_t^{-1} \left(1 - e^{-kL} \right)
+               &= b_c \left( a_s L + b_s c_0^\ast \left(1 - e^{-kL} \right) \right)
 \end{aligned}
 $$
 
@@ -93,7 +93,7 @@ $$
 \alpha(1-e^{-kL}) + \beta L - \gamma = 0
 $$ with:
 
--   $\alpha = b_s c_0 b_v f_t^{-1}$
+-   $\alpha = b_s c_0^\ast$
 -   $\beta = a_s$
 -   $\gamma = C_\mathrm{fol}/b_c$
 
@@ -154,7 +154,7 @@ par$actnv_unitfapar <- 0.1079643 # 1.36396807E-06  # typical value, run analysis
 Define variable substitutes
 
 -   $\alpha = b_c a_s$
--   $\beta = b_s c_0 b_v f_t^{-1}$
+-   $\beta = b_s c_0^\ast$
 
 ```{r}
 par$alpha <- par$r_ctostructn_leaf * par$ncw_min
@@ -238,12 +238,17 @@ df |>
   geom_line(aes(cleaf, lai)) +
   geom_line(aes(cleaf, lai_inf), linetype = "dotted") +
   theme_classic() +
-  ylim(0, NA)
+  ylim(0, NA) +
+  labs(x = expression(paste("leaf C (gC m"^-2,")")), 
+       y = expression(paste("LAI (m"^2," m"^-2,")"))
+  )
 
-df |> 
-  ggplot() +
-  geom_line(aes(lai, cleaf)) +
-  geom_line(aes(lai_inf, cleaf), linetype = "dotted") +
-  theme_classic() +
-  xlim(0, NA)
+# ggsave(here::here("fig/lai_vs_leafc.pdf"), width = 4, height = 3)
+
+# df |> 
+#   ggplot() +
+#   geom_line(aes(lai, cleaf)) +
+#   geom_line(aes(lai_inf, cleaf), linetype = "dotted") +
+#   theme_classic() +
+#   xlim(0, NA)
 ```

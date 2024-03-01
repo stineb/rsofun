@@ -124,6 +124,7 @@ df <- expand.grid(c_labl = seq(0, 2, by = 0.01), c_resv = seq(0, 1, by = 0.01)) 
 library(scico)
 ggplot(df, aes(c_labl, c_resv, fill= f_net)) + 
   geom_tile() +
+  # geom_contour(aes(z = f_net), color = "grey50", linewidth = 0.2) +
   scale_fill_scico(palette = 'roma') +
   theme_classic() +
   labs(title =  expression(paste("Tendency to fill the reserves pool: ", italic("f")[lr], " - ", italic("f") [rl])),

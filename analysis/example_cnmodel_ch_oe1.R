@@ -11,7 +11,7 @@ library(ingestr)
 pars <- list(
   
   # P-model
-  kphio                 = 0.08,       # setup ORG in Stocker et al. 2020 GMD
+  kphio                 = 0.04,       # setup ORG in Stocker et al. 2020 GMD
   kphio_par_a           = 0.0,        # set to zero to disable temperature-dependence of kphio
   kphio_par_b           = 20.0,
   soilm_thetastar       = 0.6 * 240,  # to recover old setup with soil moisture stress
@@ -29,10 +29,10 @@ pars <- list(
   r_sapw                = 2*0.044000,
   exurate               = 0.003000,
   
-  k_decay_leaf          = 1.90000,
-  k_decay_root          = 1.90000,
-  k_decay_labl          = 1.90000,
-  k_decay_sapw          = 1.90000,
+  k_decay_leaf          = 3,
+  k_decay_root          = 3,
+  k_decay_labl          = 3,
+  k_decay_sapw          = 3,
   
   r_cton_root           = 37.0000,
   r_cton_wood           = 100.000,
@@ -175,25 +175,25 @@ if (!file.exists(filnam) || overwrite){
 df_drivers <- df_drivers_ch_oe1
 
 ## Define whether to use interactive C-N cycling
-df_drivers$params_siml[[1]]$c_only <- TRUE
+df_drivers$params_siml[[1]]$c_only <- FALSE
 
 ### Synthetic forcing: Mean seasonal cycle -----------------------
-# df_drivers$forcing[[1]] <- df_drivers$forcing[[1]] |>
-#   filter(!(lubridate::month(date) == 2 & lubridate::mday(date) == 29))
-# df_meanann <- df_drivers$forcing[[1]] |>
-#   mutate(doy = lubridate::yday(date)) |>
-#   group_by(doy) |>
-#   summarise(across(where(is.double), .fns = mean)) |>
-#   filter(!(doy == 366))
-# nyears <- df_drivers$forcing[[1]] |>
-#   mutate(year = lubridate::year(date)) |>
-#   pull(year) |>
-#   unique() |>
-#   length()
-# df_drivers2 <- purrr::map_dfr(
-#   as.list(seq(nyears)),
-#   ~{df_meanann}) |>
-#   mutate(date = df_drivers$forcing[[1]]$date)
+df_drivers$forcing[[1]] <- df_drivers$forcing[[1]] |>
+  filter(!(lubridate::month(date) == 2 & lubridate::mday(date) == 29))
+df_meanann <- df_drivers$forcing[[1]] |>
+  mutate(doy = lubridate::yday(date)) |>
+  group_by(doy) |>
+  summarise(across(where(is.double), .fns = mean)) |>
+  filter(!(doy == 366))
+nyears <- df_drivers$forcing[[1]] |>
+  mutate(year = lubridate::year(date)) |>
+  pull(year) |>
+  unique() |>
+  length()
+df_drivers$forcing[[1]] <- purrr::map_dfr(
+  as.list(seq(nyears)),
+  ~{df_meanann}) |>
+  mutate(date = df_drivers$forcing[[1]]$date)
 
 # ### Synthetic forcing: Constant climate in all days -----------------------
 # df_growingseason_mean <- df_drivers$forcing[[1]] |>
