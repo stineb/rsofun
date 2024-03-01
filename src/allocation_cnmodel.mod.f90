@@ -186,8 +186,8 @@ contains
           !------------------------------------------------------------------
           ! Set allocation fraction to wood
           !------------------------------------------------------------------
-          dcwood = falloc_wood * avl%c%c12
-          dnwood = dcwood * r_ntoc_wood
+          dcwood = params_pft_plant(pft)%falloc_wood * avl%c%c12
+          dnwood = dcwood * params_pft_plant(pft)%r_ntoc_wood
           avl%c%c12 = (1.0 - falloc_wood) * avl%c%c12
 
           ! amount to be allocated as real number

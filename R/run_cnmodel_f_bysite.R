@@ -382,9 +382,10 @@ run_cnmodel_f_bysite <- function(
                                        'nv_vcmax25',
                                        'nuptake_kc',
                                        'nuptake_kv',
-                                       'nuptake_vmax'
+                                       'nuptake_vmax',
+                                       'falloc_wood'
                                        )
-    ) != 83 ){
+    ) != 84 ){
       warning(" Returning a dummy data frame. Incorrect model parameters.")
       continue <- FALSE
     }
@@ -497,7 +498,8 @@ run_cnmodel_f_bysite <- function(
       as.numeric(params_modl$nv_vcmax25),
       as.numeric(params_modl$nuptake_kc),
       as.numeric(params_modl$nuptake_kv),
-      as.numeric(params_modl$nuptake_vmax)
+      as.numeric(params_modl$nuptake_vmax),
+      as.numeric(params_modl$falloc_wood)
       )
 
     ## C wrapper call

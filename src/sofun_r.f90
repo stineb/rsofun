@@ -292,7 +292,7 @@ contains
     real(kind=c_double),  intent(in) :: altitude
     real(kind=c_double),  intent(in) :: whc
     integer(kind=c_int),  intent(in) :: nt ! number of time steps
-    real(kind=c_double),  dimension(83), intent(in) :: par  ! Model parameters
+    real(kind=c_double),  dimension(84), intent(in) :: par  ! Model parameters
     real(kind=c_double),  dimension(nt,17), intent(in) :: forcing  ! temp = 1, rain = 2, vpd = 3, ppfd = 4, netrad = 5, fsun = 6, snow = 7, co2 = 8, fapar = 9, patm = 10, tmin = 11, tmax = 12, fharv = 13, dno3 = 14, dnh4 = 15, cseed = 16, nseed = 17
     real(kind=c_double),  dimension(nt,54), intent(out) :: output
 
@@ -441,6 +441,7 @@ contains
     myinterface%params_calib%nuptake_kc            = real(par(81))
     myinterface%params_calib%nuptake_kv            = real(par(82))
     myinterface%params_calib%nuptake_vmax          = real(par(83))
+    myinterface%params_calib%falloc_wood           = real(par(84))
 
     !----------------------------------------------------------------
     ! GET VEGETATION COVER (fractional projective cover by PFT)

@@ -116,7 +116,10 @@ pars <- list(
   # simple N uptake module parameters
   nuptake_kc            = 250,
   nuptake_kv            = 5,
-  nuptake_vmax          = 0.2
+  nuptake_vmax          = 0.2,
+  
+  # wood allocation fraction
+  falloc_wood           = 0.5
   
 )
 

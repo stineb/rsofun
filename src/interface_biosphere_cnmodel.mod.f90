@@ -100,6 +100,7 @@ module md_interface_cnmodel
     real :: nuptake_kc
     real :: nuptake_kv
     real :: nuptake_vmax
+    real :: falloc_wood
   end type paramstype_calib  
 
   type interfacetype_biosphere
