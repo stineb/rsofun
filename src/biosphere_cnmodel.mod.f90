@@ -343,10 +343,10 @@ contains
         if (baltest .and. abs(orgbal1%n%n14) > eps) stop 'balance not satisfied for N'
         if (verbose) print*, '... done'
 
-        ! !----------------------------------------------------------------
-        ! ! litter and soil decomposition and N mineralisation
-        ! !----------------------------------------------------------------
-        ! if (verbose) print*, 'calling littersom() ... '
+        !----------------------------------------------------------------
+        ! litter and soil decomposition and N mineralisation
+        !----------------------------------------------------------------
+        if (verbose) print*, 'calling littersom() ... '
         if (verbose) print*, '              with state variables:'
         if (verbose) print*, '              plitt tot=  ', orgplus( tile(1)%soil%plitt_af, tile(1)%soil%plitt_as, &
                                                                     tile(1)%soil%plitt_bg )

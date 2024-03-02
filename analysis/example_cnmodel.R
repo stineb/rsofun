@@ -121,6 +121,7 @@ pars <- list(
   falloc_wood           = 0.0
   
 )
+
 ## CH-Oe1 forcing -------------------
 filnam <- "data-raw/df_drivers_ch_oe1.rds"
 overwrite <- FALSE
@@ -207,63 +208,76 @@ output <- output$data[[1]]
 ## Visualisations  ------------------------
 ### Time series ---------------------------
 
-# - LAI
+#### LAI -----------------------------
 gg1 <- output |> 
   as_tibble() |> 
   ggplot(aes(date, lai)) + 
   geom_line() +
   labs(x = "Date", y = expression(paste("LAI (m"^2, " m"^-2, ")")))
 
-# - GPP
+#### GPP -----------------------------
 gg2 <- output |> 
   as_tibble() |> 
   ggplot(aes(date, gpp)) + 
   geom_line() +
   labs(x = "Date", y = expression(paste("GPP (gC m"^-2, " d"^-1, ")")))
 
-# - NEE
+#### NEE -----------------------------
 gg3 <- output |> 
   as_tibble() |> 
-  ggplot(aes(date, cumsum(gpp - rleaf - rwood - rroot - rcex - rhet))) + 
+  ggplot(aes(date, gpp - rleaf - rwood - rroot - rhet)) + 
   geom_line() +
   labs(x = "Date", y = expression(paste("NEE (gC m"^-2, " d"^-1, ")")))
 
-# - cumulative NEE
-gg4 <- output |> 
+#### cumulative NEE -----------------------------
+output |> 
   as_tibble() |> 
-  ggplot(aes(date, cumsum(gpp - rleaf - rwood - rroot - rcex - rhet))) + 
+  ggplot(aes(date, cumsum(gpp - rleaf - rwood - rroot - rhet))) + 
   geom_line() +
-  labs(x = "Date", y = expression(paste("Cumulative NEE (gC m"^-2, " d"^-1, ")")))
+  labs(x = "Date", y = expression(paste("Cumulative NEE by GPP (gC m"^-2, " d"^-1, ")")))
 
-# - NPP
+output |> 
+  as_tibble() |> 
+  ggplot(aes(date, cumsum(npp - rhet))) + 
+  geom_line() +
+  labs(x = "Date", y = expression(paste("Cumulative NEE by NPP (gC m"^-2, " d"^-1, ")")))
+
+#### all pools --------------
+ggtest <- output |> 
+  as_tibble() |> 
+  ggplot(aes(date, cleaf + croot + cwood + cseed + cresv + clabl + clitt + csoil)) + 
+  geom_line() +
+  labs(x = "Date", y = expression(paste("Total C (gC m"^-2, ")")))
+
+#### NPP -----------------------------
 gg5 <- output |> 
   as_tibble() |> 
   ggplot(aes(date, npp)) + 
   geom_line() +
   labs(x = "Date", y = expression(paste("NPP (gC m"^-2, " d"^-1, ")")))
 
-# - NPP fraction to leaves
+#### NPP ----------------------------- fraction to leaves
 gg6 <- output |> 
   as_tibble() |> 
   ggplot(aes(date, npp_leaf/npp)) + 
   geom_line() +
   labs(x = "Date", y = "Fraction of leaf BP")
 
-# - NPP fraction to root
+#### NPP ----------------------------- fraction to root
 gg7 <- output |> 
   as_tibble() |> 
   ggplot(aes(date, npp_root/npp)) + 
   geom_line() +
   labs(x = "Date", y = "Fraction of root BP")
 
-# - NPP fraction to wood
+#### NPP ----------------------------- fraction to wood
 gg8 <- output |> 
   as_tibble() |> 
   ggplot(aes(date, npp_wood/npp)) + 
   geom_line() +
   labs(x = "Date", y = "Fraction of wood BP")
 
-# - BPE
+#### BPE -----------------------------
 gg9 <- output |> 
   mutate(year = lubridate::year(date)) |> 
   group_by(year) |> 
@@ -271,52 +285,140 @@ gg9 <- output |>
             gpp = sum(gpp)) |> 
   ggplot(aes(year, npp/gpp)) + 
   geom_line() +
-  labs(x = "Year", y = "BPE (unitless)")
+  labs(x = "Year", x = "BPE (unitless)")
 
-# - Cleaf
+#### Cleaf -----------------------------
 gg10 <- output |> 
   ggplot(aes(date, cleaf)) + 
   geom_line() +
-  labs(x = "Year", y = expression(paste("Leaf C (gC m"^-2, ")")))
+  labs(x = "Year", x = expression(paste("Leaf C (gC m"^-2, ")")))
 
-# - Croot
+#### Croot -----------------------------
 gg11 <- output |> 
   ggplot(aes(date, croot)) + 
   geom_line() +
-  labs(x = "Year", y = expression(paste("Root C (gC m"^-2, ")")))
+  labs(x = "Year", x = expression(paste("Root C (gC m"^-2, ")")))
 
-# - Clabl
+#### Clabl -----------------------------
 gg12 <- output |> 
   ggplot(aes(date, clabl)) + 
   geom_line() +
-  labs(x = "Year", y = expression(paste("Labile C (gC m"^-2, ")")))
+  labs(x = "Year", x = expression(paste("Labile C (gC m"^-2, ")")))
 
-# - Cresv
+#### Cresv -----------------------------
 gg13 <- output |> 
   ggplot(aes(date, cresv)) + 
   geom_line() +
-  labs(x = "Year", y = expression(paste("Reserves C (gC m"^-2, ")")))
+  labs(x = "Year", x = expression(paste("Reserves C (gC m"^-2, ")")))
 
-# - RMF
-gg10 <- output |> 
+#### RMF -----------------------------
+gg14 <- output |> 
   as_tibble() |> 
   ggplot(aes(date, croot/(croot + cleaf + cwood))) + 
   geom_line() +
   labs(x = "Date", y = "Fraction of wood BP")
 
-# - Clitt
-# - Csoil
-# - CNleaf
-# - CNlitt
-# - CNsoil
-# - Ninorg
-# - Netmin
-# - Nup
-# - Nloss
-# - tsoil
+#### Clitt -----------------------------
+gg15 <- output |> 
+  as_tibble() |> 
+  ggplot(aes(date, clitt)) + 
+  geom_line() +
+  labs(x = "Year", x = expression(paste("Litter C (gC m"^-2, ")")))
 
+#### Csoil -----------------------------
+gg16 <- output |> 
+  as_tibble() |> 
+  ggplot(aes(date, csoil)) + 
+  geom_line() +
+  labs(x = "Year", x = expression(paste("Soil C (gC m"^-2, ")")))
 
+#### CNleaf -----------------------------
+gg17 <- output |> 
+  as_tibble() |> 
+  ggplot(aes(date, cleaf/nleaf)) + 
+  geom_line() +
+  labs(x = "Year", x = expression(paste("Leaf C:N (gC gN"^-1, ")")))
 
+#### CNlitt -----------------------------
+gg18 <- output |> 
+  as_tibble() |> 
+  ggplot(aes(date, clitt/nlitt)) + 
+  geom_line() +
+  labs(x = "Year", x = expression(paste("Litter C:N (gC gN"^-1, ")")))
+
+#### CNsoil -----------------------------
+gg19 <- output |> 
+  as_tibble() |> 
+  ggplot(aes(date, csoil/nsoil)) + 
+  geom_line() +
+  labs(x = "Year", x = expression(paste("Soil C:N (gC gN"^-1, ")")))
+
+#### Ninorg -----------------------------
+gg20 <- output |> 
+  ggplot(aes(date, ninorg)) + 
+  geom_line() +
+  labs(x = "Year", x = expression(paste("Soil inorganic N (gN m"^-2, ")")))
+
+#### Netmin -----------------------------
+gg21 <- output |> 
+  as_tibble() |> 
+  ggplot(aes(date, netmin)) + 
+  geom_line() +
+  labs(x = "Date", y = expression(paste("Net N mineralization (gN m"^-2, " d"^-1, ")")))
+
+#### Nup -----------------------------
+gg22 <- output |> 
+  as_tibble() |> 
+  ggplot(aes(date, nup)) + 
+  geom_line() +
+  labs(x = "Date", y = expression(paste("N uptake (gN m"^-2, " d"^-1, ")")))
+
+#### Nloss ----------------------------- XXX problem: cannot be so high
+gg23 <- output |> 
+  as_tibble() |> 
+  ggplot(aes(date, nloss)) + 
+  geom_line() +
+  labs(x = "Date", y = expression(paste("N loss (gN m"^-2, " d"^-1, ")")))
+
+#### tsoil -----------------------------
+gg24 <- output |> 
+  as_tibble() |> 
+  ggplot(aes(date, tsoil)) + 
+  geom_line() +
+  labs(x = "Date", y = "°C")
+
+ggout <- cowplot::plot_grid(
+  gg1, 
+  gg2, 
+  gg3, 
+  gg4, 
+  gg5, 
+  gg6, 
+  gg7, 
+  gg8, 
+  gg9, 
+  gg10, 
+  gg11, 
+  gg12, 
+  gg13, 
+  gg14, 
+  gg15, 
+  gg16, 
+  gg17, 
+  gg18, 
+  gg19, 
+  gg20, 
+  gg21, 
+  gg22, 
+  gg23,
+  gg24,
+  ncol = 1
+  )
+
+ggsave(here::here("fig/tseries.pdf"), 
+       plot = ggout,
+       width = 8,
+       height = 30 )
 
 
 gg1 <- output |> 
@@ -777,7 +879,7 @@ ggrr <- ggplot() +
   geom_hline( yintercept = 0.0, linewidth = 0.5, linetype = "dotted" ) +
   labs(x = "Variable", y = "Log Response Ratio") +
   coord_flip() +
-  labs(title = "cnmodel prediction", subtitle = "Response to eCO2")
+  labs(title = "cnmodel prediction", x = "Response to eCO2")
 
 
 ## Write output to file --------------------

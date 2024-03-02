@@ -913,7 +913,7 @@ contains
     out_biosphere%npp_wood= tile_fluxes(lu)%canopy%npp_wood
     out_biosphere%cwood   = tile(lu)%plant(pft)%pwood%c%c12
     out_biosphere%nwood   = tile(lu)%plant(pft)%pwood%n%n14
-    out_biosphere%rleaf   = tile_fluxes(lu)%plant(pft)%drleaf
+    out_biosphere%rleaf   = tile_fluxes(lu)%plant(pft)%drleaf + tile_fluxes(lu)%plant(pft)%drgrow
     out_biosphere%rwood   = tile_fluxes(lu)%plant(pft)%drsapw
     out_biosphere%rroot   = tile_fluxes(lu)%plant(pft)%drroot
     out_biosphere%rcex    = tile_fluxes(lu)%plant(pft)%dcex
