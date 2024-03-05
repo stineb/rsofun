@@ -136,6 +136,7 @@ contains
 
     ! xxx debug
     real :: tmp
+    real :: frac_leaf_test
 
     ! xxx verbose
     logical, parameter :: verbose = .true.
@@ -391,10 +392,10 @@ contains
       ! => solve for x (frac_leaf below)
       ! c_consumed is c_req; n_consumed is n_con
       if ( myinterface%steering%dofree_alloc ) then
-        frac_leaf = 1.0 / (psi_c * n_con_corr / (psi_n * c_con) + 1.0)
+        ! frac_leaf = 1.0 / (psi_c * n_con_corr / (psi_n * c_con) + 1.0)
 
         ! with wood allocation:
-        ! frac_leaf = psi_c * c_con * (1.0 - frac_wood) / (psi_c * n_con_corr + psi_c * c_con)
+        frac_leaf_test = psi_n * c_con * (1.0 - params_allocation%frac_wood) / (psi_c * n_con_corr + psi_n * c_con)
       end if
       ! tile_fluxes(lu)%plant(pft)%debug3 = 1.0 / (psi_c * n_con_corr / (psi_n * c_con) + 1.0)
 
