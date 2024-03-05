@@ -7,8 +7,123 @@ library(readr)
 library(lubridate)
 
 ## Parameters ------------------------
+# # in LT review paper v3
+# pars <- list(
+#   
+#   # P-model
+#   kphio                 = 0.04998,    # setup ORG in Stocker et al. 2020 GMD
+#   kphio_par_a           = 0.0,        # set to zero to disable temperature-dependence of kphio
+#   kphio_par_b           = 1.0,
+#   soilm_thetastar       = 0.6 * 240,  # to recover old setup with soil moisture stress
+#   soilm_betao           = 0.0,
+#   beta_unitcostratio    = 146.0,
+#   rd_to_vcmax           = 0.014,      # value from Atkin et al. 2015 for C3 herbaceous
+#   tau_acclim            = 30.0,
+#   kc_jmax               = 0.41,
+#   
+#   # Plant
+#   f_nretain             = 0.500000,
+#   fpc_tree_max          = 0.950000,
+#   growtheff             = 0.600000,
+#   r_root                = 2*0.913000,
+#   r_sapw                = 2*0.044000,
+#   exurate               = 0.003000,
+#   
+#   k_decay_leaf          = 1.90000,
+#   k_decay_root          = 1.90000,
+#   k_decay_labl          = 1.90000,
+#   k_decay_sapw          = 1.90000,
+#   
+#   r_cton_root           = 37.0000,
+#   r_cton_wood           = 100.000,
+#   r_cton_seed           = 15.0000,
+#   nv_vcmax25            = 0.02 * 13681.77, # see ln_cn_review/vignettes/analysis_leafn_vcmax_field.Rmd, l.695; previously: 5000.0,
+#   ncw_min               = 0.08 * 1.116222, # see ln_cn_review/vignettes/analysis_leafn_vcmax_field.Rmd, l.691; previously used: 0.056,
+#   r_n_cw_v              = 0, # assumed that LMA is independent of Vcmax25; previously: 0.1,
+#   r_ctostructn_leaf     = 1.3 * 45.84125, # see ln_cn_review/vignettes/analysis_leafn_vcmax_field.Rmd, l.699; previously used: 80.0000,
+#   kbeer                 = 0.500000,
+#   
+#   # Phenology (should be PFT-specific)
+#   gddbase               = 5.0,
+#   ramp                  = 0.0,
+#   phentype              = 2.0,
+#   
+#   # Soil physics (should be derived from params_soil, fsand, fclay, forg, fgravel)
+#   perc_k1               = 5.0,
+#   thdiff_wp             = 0.2,
+#   thdiff_whc15          = 0.8,
+#   thdiff_fc             = 0.4,
+#   forg                  = 0.01,
+#   wbwp                  = 0.029,
+#   por                   = 0.421,
+#   fsand                 = 0.82,
+#   fclay                 = 0.06,
+#   fsilt                 = 0.12,
+#   
+#   # Water and energy balance
+#   kA                    = 107,
+#   kalb_sw               = 0.17,
+#   kalb_vis              = 0.03,
+#   kb                    = 0.20,
+#   kc                    = 0.25,
+#   kCw                   = 1.05,
+#   kd                    = 0.50,
+#   ke                    = 0.0167,
+#   keps                  = 23.44,
+#   kWm                   = 220.0,
+#   kw                    = 0.26,
+#   komega                = 283.0,
+#   maxmeltrate           = 3.0,
+#   
+#   # Soil BGC
+#   klitt_af10            = 1.2,
+#   klitt_as10            = 0.35,
+#   klitt_bg10            = 0.35,
+#   kexu10                = 50.0,
+#   ksoil_fs10            = 0.021,
+#   ksoil_sl10            = 7.0e-04,
+#   ntoc_crit1            = 0.45,
+#   ntoc_crit2            = 0.76,
+#   cton_microb           = 10.0,
+#   cton_soil             = 9.77,
+#   fastfrac              = 0.985,
+#   
+#   # N uptake
+#   eff_nup               = 0.0001000,
+#   minimumcostfix        = 1.000000,
+#   fixoptimum            = 25.15000,
+#   a_param_fix           = -3.62000,
+#   b_param_fix           = 0.270000,
+#   
+#   # Inorganic N transformations (re-interpreted for simple ntransform model)
+#   maxnitr               =  0.000005,
+#   
+#   # Inorganic N transformations for full ntransform model (not used in simple model)
+#   non                   = 0.01,
+#   n2on                  = 0.0005,
+#   kn                    = 83.0,
+#   kdoc                  = 17.0,
+#   docmax                = 1.0,
+#   dnitr2n2o             = 0.01,
+#   
+#   # Additional parameters - previously forgotten
+#   frac_leaf             = 0.5,           # after wood allocation
+#   frac_wood             = 0.0,           # highest priority in allocation
+#   frac_avl_labl         = 0.1,
+#   
+#   # for development
+#   tmppar                = 9999,
+#   
+#   # simple N uptake module parameters
+#   nuptake_kc            = 250,
+#   nuptake_kv            = 5,
+#   nuptake_vmax          = 0.15
+#   
+# )
+
+# hand-tuned to work reasonably
 pars <- list(
-  
+
   # P-model
   kphio                 = 0.08,       # setup ORG in Stocker et al. 2020 GMD
   kphio_par_a           = -0.001,        # set to zero to disable temperature-dependence of kphio
@@ -19,7 +134,7 @@ pars <- list(
   rd_to_vcmax           = 0.014,      # value from Atkin et al. 2015 for C3 herbaceous
   tau_acclim            = 30.0,
   kc_jmax               = 0.41,
-  
+
   # Plant
   f_nretain             = 0.500000,
   fpc_tree_max          = 0.950000,
@@ -27,12 +142,12 @@ pars <- list(
   r_root                = 2*0.913000,
   r_sapw                = 2*0.044000,
   exurate               = 0.003000,
-  
+
   k_decay_leaf          = 1,
   k_decay_root          = 1,
   k_decay_labl          = 0.5,
   k_decay_sapw          = 0.01,
-  
+
   r_cton_root           = 37.0000,
   r_cton_wood           = 350,
   r_cton_seed           = 15.0000,
@@ -41,39 +156,39 @@ pars <- list(
   r_n_cw_v              = 1.23223, #0, # assumed that LMA is independent of Vcmax25; previously: 0.1,
   r_ctostructn_leaf     = 40, #1.3 * 45.84125, # see ln_cn_review/vignettes/analysis_leafn_vcmax_field.Rmd, l.699; previously used: 80.0000,
   kbeer                 = 0.500000,
-  
+
   # Phenology (should be PFT-specific)
   gddbase               = 5.0,
   ramp                  = 0.0,
   phentype              = 2.0,
-  
+
   # Soil physics (should be derived from params_soil, fsand, fclay, forg, fgravel)
-  perc_k1               = 5.0,        
-  thdiff_wp             = 0.2,          
+  perc_k1               = 5.0,
+  thdiff_wp             = 0.2,
   thdiff_whc15          = 0.8,
-  thdiff_fc             = 0.4,          
+  thdiff_fc             = 0.4,
   forg                  = 0.01,
-  wbwp                  = 0.029,  
-  por                   = 0.421,    
-  fsand                 = 0.82,      
-  fclay                 = 0.06,      
-  fsilt                 = 0.12,  
-  
+  wbwp                  = 0.029,
+  por                   = 0.421,
+  fsand                 = 0.82,
+  fclay                 = 0.06,
+  fsilt                 = 0.12,
+
   # Water and energy balance
-  kA                    = 107,     
-  kalb_sw               = 0.17,    
-  kalb_vis              = 0.03,    
-  kb                    = 0.20,    
-  kc                    = 0.25,    
-  kCw                   = 1.05,    
-  kd                    = 0.50,    
-  ke                    = 0.0167,  
-  keps                  = 23.44,   
-  kWm                   = 220.0,   
-  kw                    = 0.26,    
+  kA                    = 107,
+  kalb_sw               = 0.17,
+  kalb_vis              = 0.03,
+  kb                    = 0.20,
+  kc                    = 0.25,
+  kCw                   = 1.05,
+  kd                    = 0.50,
+  ke                    = 0.0167,
+  keps                  = 23.44,
+  kWm                   = 220.0,
+  kw                    = 0.26,
   komega                = 283.0,
   maxmeltrate           = 3.0,
-  
+
   # Soil BGC
   klitt_af10            = 1.2,
   klitt_as10            = 0.35,
@@ -86,7 +201,7 @@ pars <- list(
   cton_microb           = 10.0,
   cton_soil             = 9.77,
   fastfrac              = 0.985,
-  
+
   # N uptake
   # eff_nup               = 0.600000,  # original value
   eff_nup               = 0.005000,
@@ -94,7 +209,7 @@ pars <- list(
   fixoptimum            = 25.15000,
   a_param_fix           = -3.62000,
   b_param_fix           = 0.270000,
-  
+
   # Inorganic N transformations
   maxnitr               = 0.1,
   non                   = 0.01,
@@ -103,26 +218,22 @@ pars <- list(
   kdoc                  = 17.0,
   docmax                = 1.0,
   dnitr2n2o             = 0.01,
-  
+
   # Additional parameters - previously forgotten
   frac_leaf             = 0.5,           # after wood allocation
   frac_wood             = 0.5,           # highest priority in allocation
   frac_avl_labl         = 0.1,
-  
+
   # for development
   tmppar                = 9999,
-  
+
   # simple N uptake module parameters
   nuptake_kc            = 250,
   nuptake_kv            = 1,
-  nuptake_vmax          = 1.0,
-  
-  # wood allocation fraction
-  falloc_wood           = 0.0
-  
+  nuptake_vmax          = 1.0
 )
 
-## CH-Oe1 forcing -------------------
+## CH-Oe1 climate forcing -------------------
 filnam <- "data-raw/df_drivers_ch_oe1.rds"
 overwrite <- FALSE
 
@@ -196,6 +307,25 @@ df_drivers$forcing[[1]] <- purrr::map_dfr(
   ~{df_meanann}) |>
   mutate(date = df_drivers$forcing[[1]]$date)
 
+# ### 100 years at elevated CO2 ---------------
+# # from 2009 onwards
+# df_meanann_ele <- df_meanann |> 
+#   mutate(co2 = co2*2)
+# 
+# nyears_ele <- 100
+# 
+# dates <- tibble(
+#   date = seq(ymd("2009-01-01"), ymd("2108-12-31"), by = "days")) |> 
+#   mutate(month = month(date), dom = mday(date)) |> 
+#   filter(!(month == 2 & dom == 29))
+# 
+# df_drivers$forcing[[1]] <- bind_rows(
+#   df_drivers$forcing[[1]],
+#   purrr::map_dfr(
+#     as.list(seq(nyears_ele)),
+#     ~{df_meanann_ele}) |> 
+#     mutate(date = dates$date)
+#     )
 
 ## Model run ------------------------
 output <- runread_cnmodel_f(
