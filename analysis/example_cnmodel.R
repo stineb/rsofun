@@ -10,7 +10,7 @@ library(lubridate)
 pars <- list(
   
   # P-model
-  kphio                 = 0.06,       # setup ORG in Stocker et al. 2020 GMD
+  kphio                 = 0.08,       # setup ORG in Stocker et al. 2020 GMD
   kphio_par_a           = -0.001,        # set to zero to disable temperature-dependence of kphio
   kphio_par_b           = 20.0,
   soilm_thetastar       = 0.6 * 240,  # to recover old setup with soil moisture stress
@@ -28,9 +28,9 @@ pars <- list(
   r_sapw                = 2*0.044000,
   exurate               = 0.003000,
   
-  k_decay_leaf          = 3,
-  k_decay_root          = 3,
-  k_decay_labl          = 3,
+  k_decay_leaf          = 1,
+  k_decay_root          = 1,
+  k_decay_labl          = 0.5,
   k_decay_sapw          = 0.01,
   
   r_cton_root           = 37.0000,
@@ -106,7 +106,7 @@ pars <- list(
   
   # Additional parameters - previously forgotten
   frac_leaf             = 0.5,           # after wood allocation
-  frac_wood             = 0.0,           # highest priority in allocation
+  frac_wood             = 0.5,           # highest priority in allocation
   frac_avl_labl         = 0.1,
   
   # for development
@@ -114,8 +114,8 @@ pars <- list(
   
   # simple N uptake module parameters
   nuptake_kc            = 250,
-  nuptake_kv            = 5,
-  nuptake_vmax          = 0.2,
+  nuptake_kv            = 1,
+  nuptake_vmax          = 1.0,
   
   # wood allocation fraction
   falloc_wood           = 0.0
@@ -131,7 +131,7 @@ if (!file.exists(filnam) || overwrite){
   df_drivers_ch_oe1 <- read_rds("~/data/FluxDataKit/rsofun_driver_data_clean.rds") |> 
     filter(sitename == "CH-Oe1")
   
-  df_ndep <- ingest(
+  df_ndep <- ingestr::ingest(
     df_drivers_ch_oe1 |>
       unnest(site_info) |>
       select(sitename, lon, lat) |>
@@ -155,8 +155,8 @@ if (!file.exists(filnam) || overwrite){
   df_drivers_ch_oe1 <- df_drivers_ch_oe1 |>
     mutate(forcing = purrr::map(forcing, ~mutate(.,
                                                  fharv = 0.0,
-                                                 dno3 = df_ndep_mean$noy,
-                                                 dnh4 = df_ndep_mean$nhx)),
+                                                 dno3 = df_ndep_mean$noy / 365,
+                                                 dnh4 = df_ndep_mean$nhx / 365)),
            forcing = purrr::map(forcing, ~mutate(.,
                                                  fharv = ifelse(month(date) == 7 & mday(date) == 15, 0.0, 0.0),
                                                  cseed = ifelse(month(date) == 2 & mday(date) == 15, use_cseed, 0.0),
@@ -233,6 +233,7 @@ gg4 <- output |>
   as_tibble() |> 
   ggplot(aes(date, cumsum(gpp - rleaf - rwood - rroot - rhet))) + 
   geom_line() +
+  geom_smooth(method = "lm", se = FALSE) +
   labs(x = "Date", y = expression(paste("Cumulative NEE by GPP (gC m"^-2, " d"^-1, ")")))
 
 output |> 
@@ -248,6 +249,7 @@ ggtest <- output |>
   as_tibble() |> 
   ggplot(aes(date, cleaf + croot + cwood + cseed + cresv + clabl + clitt + csoil)) + 
   geom_line() +
+  geom_smooth(method = "lm", se = FALSE) +
   labs(x = "Date", y = expression(paste("Total C (gC m"^-2, ")")))
 
 #### NPP -----------------------------
@@ -299,6 +301,12 @@ gg11 <- output |>
   ggplot(aes(date, croot)) + 
   geom_line() +
   labs(x = "Year", x = expression(paste("Root C (gC m"^-2, ")")))
+
+#### Cwood -----------------------------
+gg26 <- output |> 
+  ggplot(aes(date, cwood)) + 
+  geom_line() +
+  labs(x = "Year", x = expression(paste("Wood C (gC m"^-2, ")")))
 
 #### Clabl -----------------------------
 gg12 <- output |> 
@@ -381,8 +389,15 @@ gg23 <- output |>
   geom_line() +
   labs(x = "Date", y = expression(paste("N loss (gN m"^-2, " d"^-1, ")")))
 
-#### tsoil -----------------------------
+#### Nup -----------------------------
 gg24 <- output |> 
+  as_tibble() |> 
+  ggplot(aes(date, nfix)) + 
+  geom_line() +
+  labs(x = "Date", y = expression(paste("N fixation (gN m"^-2, " d"^-1, ")")))
+
+#### tsoil -----------------------------
+gg25 <- output |> 
   as_tibble() |> 
   ggplot(aes(date, tsoil)) + 
   geom_line() +
@@ -401,6 +416,7 @@ ggout <- cowplot::plot_grid(
   gg9, 
   gg10, 
   gg11, 
+  gg26,
   gg12, 
   gg13, 
   gg14, 
@@ -420,7 +436,7 @@ ggout <- cowplot::plot_grid(
 ggsave(here::here("fig/tseries.pdf"), 
        plot = ggout,
        width = 8,
-       height = 30 )
+       height = 35 )
 
 ### Annual totals -----------------
 adf <- output |> 
