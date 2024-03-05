@@ -229,7 +229,7 @@ gg3 <- output |>
   labs(x = "Date", y = expression(paste("NEE (gC m"^-2, " d"^-1, ")")))
 
 #### cumulative NEE -----------------------------
-output |> 
+gg4 <- output |> 
   as_tibble() |> 
   ggplot(aes(date, cumsum(gpp - rleaf - rwood - rroot - rhet))) + 
   geom_line() +
@@ -240,6 +240,8 @@ output |>
   ggplot(aes(date, cumsum(npp - rhet))) + 
   geom_line() +
   labs(x = "Date", y = expression(paste("Cumulative NEE by NPP (gC m"^-2, " d"^-1, ")")))
+
+gg1 / gg2 / gg3 / gg4
 
 #### all pools --------------
 ggtest <- output |> 
@@ -315,7 +317,7 @@ gg14 <- output |>
   as_tibble() |> 
   ggplot(aes(date, croot/(croot + cleaf + cwood))) + 
   geom_line() +
-  labs(x = "Date", y = "Fraction of wood BP")
+  labs(x = "Date", y = "Root mass fraction")
 
 #### Clitt -----------------------------
 gg15 <- output |> 

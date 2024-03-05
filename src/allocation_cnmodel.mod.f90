@@ -183,9 +183,9 @@ contains
           !------------------------------------------------------------------
           ! Set allocation fraction to wood
           !------------------------------------------------------------------
-          dcwood = params_pft_plant(pft)%falloc_wood * avl%c%c12
+          dcwood = params_allocation%frac_wood * avl%c%c12
           dnwood = dcwood * params_pft_plant(pft)%r_ntoc_wood
-          avl%c%c12 = (1.0 - params_pft_plant(pft)%falloc_wood) * avl%c%c12
+          avl%c%c12 = (1.0 - params_allocation%frac_wood) * avl%c%c12
 
           ! amount to be allocated as real number
           ! dcseed = f_seed * params_plant%growtheff * avl%c%c12
@@ -395,7 +395,7 @@ contains
         ! frac_leaf = 1.0 / (psi_c * n_con_corr / (psi_n * c_con) + 1.0)
 
         ! with wood allocation:
-        frac_leaf_test = psi_n * c_con * (1.0 - params_allocation%frac_wood) / (psi_c * n_con_corr + psi_n * c_con)
+        frac_leaf = psi_n * c_con * (1.0 - params_allocation%frac_wood) / (psi_c * n_con_corr + psi_n * c_con)
       end if
       ! tile_fluxes(lu)%plant(pft)%debug3 = 1.0 / (psi_c * n_con_corr / (psi_n * c_con) + 1.0)
 

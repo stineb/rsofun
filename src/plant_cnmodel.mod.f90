@@ -67,7 +67,6 @@ module md_plant_cnmodel
     real    :: ncw_min             ! y-axis intersection in the relationship of non-metabolic versus metabolic N per leaf area    
     real    :: r_n_cw_v            ! slope in the relationship of non-metabolic versus metabolic N per leaf area              
     real    :: r_ctostructn_leaf   ! constant ratio of C to structural N (mol C / mol N)
-    real    :: falloc_wood         ! fraction of allocation to wood (unitless)
     
   end type params_pft_plant_type
 
@@ -650,9 +649,6 @@ contains
 
     ! constant ratio of C to structural N
     out_getpftparams%r_ctostructn_leaf = myinterface%params_calib%r_ctostructn_leaf
-
-    ! fraction of allocation to wood
-    out_getpftparams%falloc_wood = myinterface%params_calib%falloc_wood    
 
   end function getpftparams
 
