@@ -207,7 +207,6 @@ output <- output$data[[1]]
 
 ## Visualisations  ------------------------
 ### Time series ---------------------------
-
 #### LAI -----------------------------
 gg1 <- output |> 
   as_tibble() |> 
@@ -387,6 +386,7 @@ gg24 <- output |>
   geom_line() +
   labs(x = "Date", y = "°C")
 
+#### All -----------------
 ggout <- cowplot::plot_grid(
   gg1, 
   gg2, 
@@ -420,6 +420,30 @@ ggsave(here::here("fig/tseries.pdf"),
        width = 8,
        height = 30 )
 
+### Annual totals -----------------
+adf <- output |> 
+  as_tibble() |> 
+  left_join(
+    df_drivers$forcing[[1]],
+    by = "date"
+  ) |> 
+  mutate(year = lubridate::year(date)) |> 
+  group_by(year) |> 
+  summarise(across(where(is.numeric), sum)) |> 
+  summarise(across(where(is.numeric), mean))
+  
+
+#### N input (deposition)
+adf |> 
+  mutate(ndep = dno3 + dnh4) |> 
+  select(ndep, nloss, netmin, nup) |> 
+  pivot_longer(
+    cols = c(ndep, nloss, netmin, nup),
+    names_to = "var",
+    values_to = "val"
+  ) |> 
+  ggplot(aes(var, val)) +
+  geom_bar(stat = "identity")
 
 gg1 <- output |> 
   as_tibble() |> 
