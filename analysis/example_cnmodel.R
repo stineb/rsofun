@@ -7,7 +7,6 @@ library(readr)
 library(lubridate)
 
 ## Parameters ------------------------
-# in LT review paper v3
 pars <- list(
 
   # P-model
@@ -115,9 +114,9 @@ pars <- list(
   tmppar                = 9999,
 
   # simple N uptake module parameters
-  nuptake_kc            = 250,
+  nuptake_kc            = 600,
   nuptake_kv            = 5,
-  nuptake_vmax          = 0.15
+  nuptake_vmax          = 0.2
 
 )
 
