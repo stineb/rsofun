@@ -230,6 +230,9 @@ adf <- output$data[[1]] |>
     npp_leaf = sum(npp_leaf),
     npp_root = sum(npp_root),
     npp_wood = sum(npp_wood),
+    cleaf = mean(cleaf),
+    croot = mean(croot),
+    cwood = mean(cwood),
     nup = sum(nup),
     netmin = sum(netmin),
     ninorg = mean(pno3 + pnh4),
@@ -499,29 +502,29 @@ gg5 <- adf |>
   geom_vline(xintercept = 2009, linetype = "dotted") +
   labs(x = "Date", y = expression(paste("NPP (gC m"^-2, " d"^-1, ")")))
 
-#### NPP fraction to leaves ----------------------------- 
+#### C root ----------------------------- 
 gg6 <- adf |> 
   as_tibble() |> 
-  ggplot(aes(year, npp_leaf/npp)) + 
+  ggplot(aes(year, croot)) + 
   geom_line() +
   geom_vline(xintercept = 2009, linetype = "dotted") +
-  labs(x = "Date", y = "Fraction of leaf BP")
+  labs(x = "Date", y = "Root C")
 
-#### NPP fraction to roots ----------------------------- 
+#### C leaf ----------------------------- 
 gg7 <- adf |> 
   as_tibble() |> 
-  ggplot(aes(year, npp_root/npp)) + 
+  ggplot(aes(year, cleaf)) + 
   geom_line() +
   geom_vline(xintercept = 2009, linetype = "dotted") +
-  labs(x = "Date", y = "Fraction of root BP")
+  labs(x = "Date", y = "Leaf C")
 
-#### NPP fraction to wood ----------------------------- 
+#### RMF ----------------------------- 
 gg8 <- adf |> 
   as_tibble() |> 
-  ggplot(aes(year, npp_wood/npp)) + 
+  ggplot(aes(year, croot/(croot + cleaf + cwood))) + 
   geom_line() +
   geom_vline(xintercept = 2009, linetype = "dotted") +
-  labs(x = "Date", y = "Fraction of wood BP")
+  labs(x = "Date", y = "Root mass fraction")
 
 #### N uptake ----------------------------- 
 gg9 <- adf |> 
