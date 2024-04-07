@@ -192,12 +192,16 @@ contains
           ! dnseed = min(avl%n%n14, dcseed * params_pft_plant(pft)%r_ntoc_seed)
 
           !------------------------------------------------------------------
-          ! Set remaining allocation fractions after wood
+          ! Set remaining allocation fractions to leaves and roots (after wood)
           !------------------------------------------------------------------
+          ! print*,'clabl, avl, frac_leaf: ', tile(lu)%plant(pft)%plabl%c%c12, avl%c%c12, frac_leaf
+
           ! leaf allocation fraction was determined in the previous time step (dcleaf is a "save variable")
           dcleaf = frac_leaf         * params_plant%growtheff * avl%c%c12
           dcroot = (1.0 - frac_leaf) * params_plant%growtheff * avl%c%c12
           dnroot = dcroot * params_pft_plant(pft)%r_ntoc_root
+
+          ! print*,'dcleaf, dcroot ', dcleaf, dcroot
 
           tile_fluxes(lu)%plant(pft)%debug4 = tile(lu)%plant(pft)%pheno%level_veggrowth 
 
@@ -619,6 +623,7 @@ contains
     rgrow = rgrow + dclabl - mydcroot
 
     if ( clabl < -1.0 * eps ) then
+      ! print*,'clabl after root allocation: ', clabl
       stop 'ALLOCATE_ROOT: trying to remove too much from labile pool: root C'
     else if ( clabl < 0.0 ) then
       ! numerical imprecision

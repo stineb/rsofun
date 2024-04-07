@@ -96,6 +96,8 @@ contains
 
     nup = calc_vn( ninorg ) * croot / (params_nuptake%kc + croot)
 
+    ! print*,'nuptake: Croot saturation ', croot / (params_nuptake%kc + croot)
+
   end function calc_dnup
 
 
@@ -110,6 +112,8 @@ contains
     real :: vn
 
     vn = params_nuptake%vmax * ninorg / (params_nuptake%kv + ninorg)
+
+    ! print*,'nuptake: Ninorg saturation ', ninorg / (params_nuptake%kv + ninorg)
 
   end function calc_vn
 

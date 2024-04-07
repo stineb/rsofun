@@ -5,6 +5,7 @@ library(ggplot2)
 library(patchwork)
 library(readr)
 library(lubridate)
+library(cowplot)
 
 ## Parameters ------------------------
 pars <- list(
@@ -106,7 +107,7 @@ pars <- list(
   dnitr2n2o             = 0.01,
 
   # Additional parameters - previously forgotten
-  frac_leaf             = 0.5,           # after wood allocation
+  frac_leaf             = 0.5,         # after wood allocation
   frac_wood             = 0,           # highest priority in allocation
   frac_avl_labl         = 0.1,
 
@@ -220,6 +221,7 @@ output <- runread_cnmodel_f(
   par = pars
 )
 
+## Output aggregation and summary statistics ------------------------
 adf <- output$data[[1]] |> 
   mutate(year = year(date)) |> 
   group_by(year) |> 
@@ -231,6 +233,9 @@ adf <- output$data[[1]] |>
     npp_root = sum(npp_root),
     npp_wood = sum(npp_wood),
     cleaf = mean(cleaf),
+    nleaf = mean(nleaf),
+    clitt = mean(clitt),
+    nlitt = mean(nlitt),
     croot = mean(croot),
     cwood = mean(cwood),
     nup = sum(nup),
@@ -238,6 +243,16 @@ adf <- output$data[[1]] |>
     ninorg = mean(pno3 + pnh4),
     nloss = sum(nloss)
   )
+
+adf_mean <- adf |> 
+  filter(year %in% 2002:2008) |> 
+  summarise(across(where(is.numeric), mean)) |> 
+  select(-year) |> 
+  mutate(cue = npp/gpp,
+         cnleaf = cleaf/nleaf,
+         cnlitt = clitt/nlitt
+         ) |> 
+  pivot_longer(cols = everything())
 
 # keep first 7 years for visualising seasonal course
 ddf <- output$data[[1]][1:(7*365),]
@@ -250,231 +265,304 @@ gg1 <- ddf |>
   as_tibble() |> 
   ggplot(aes(date, lai)) + 
   geom_line() +
-  labs(x = "Date", y = expression(paste("LAI (m"^2, " m"^-2, ")")))
+  labs(x = "", y = expression(paste("LAI (m"^2, " m"^-2, ")"))) +
+  theme_classic()
 
 #### GPP -----------------------------
 gg2 <- ddf |> 
   as_tibble() |> 
   ggplot(aes(date, gpp)) + 
   geom_line() +
-  labs(x = "Date", y = expression(paste("GPP (gC m"^-2, " d"^-1, ")")))
+  labs(x = "", y = expression(paste("GPP (gC m"^-2, " d"^-1, ")"))) +
+  theme_classic()
 
-#### NEE -----------------------------
+#### NEP -----------------------------
 gg3 <- ddf |> 
   as_tibble() |> 
   ggplot(aes(date, gpp - rleaf - rwood - rroot - rhet)) + 
   geom_line() +
-  labs(x = "Date", y = expression(paste("NEE (gC m"^-2, " d"^-1, ")")))
+  labs(x = "", y = expression(paste("NEP (gC m"^-2, " d"^-1, ")"))) +
+  theme_classic()
 
-#### cumulative NEE -----------------------------
+#### cumulative NEP -----------------------------
+# by GPP
 gg4 <- ddf |> 
   as_tibble() |> 
   ggplot(aes(date, cumsum(gpp - rleaf - rwood - rroot - rhet))) + 
   geom_line() +
-  geom_smooth(method = "lm", se = FALSE) +
-  labs(x = "Date", y = expression(paste("Cumulative NEE by GPP (gC m"^-2, " d"^-1, ")")))
+  # geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "", y = expression(paste("Cum. NEP (gC m"^-2, ")"))) +
+  theme_classic()
 
-ddf |> 
+#### Reco -----------------------------
+gg_reco <- ddf |> 
   as_tibble() |> 
-  ggplot(aes(date, cumsum(npp - rhet))) + 
+  ggplot(aes(date, rleaf + rwood + rroot + rhet)) + 
   geom_line() +
-  labs(x = "Date", y = expression(paste("Cumulative NEE by NPP (gC m"^-2, " d"^-1, ")")))
+  labs(x = "", y = expression(paste("R"[eco], " (gC m"^-2, " d"^-1, ")"))) +
+  theme_classic()
 
-gg1 / gg2 / gg3 / gg4
+# # by NPP
+# ddf |> 
+#   as_tibble() |> 
+#   ggplot(aes(date, cumsum(npp - rhet))) + 
+#   geom_line() +
+#   labs(x = "", y = expression(paste("Cumulative NEE by NPP (gC m"^-2, " d"^-1, ")")))
 
 #### all pools --------------
-ggtest <- ddf |> 
-  as_tibble() |> 
-  ggplot(aes(date, cleaf + croot + cwood + cseed + cresv + clabl + clitt + csoil)) + 
-  geom_line() +
-  geom_smooth(method = "lm", se = FALSE) +
-  labs(x = "Date", y = expression(paste("Total C (gC m"^-2, ")")))
+# ggtest <- ddf |> 
+#   as_tibble() |> 
+#   ggplot(aes(date, (cleaf + croot + cwood + cseed + cresv + clabl + clitt + csoil) - cumsum(gpp - rleaf - rwood - rroot - rhet))) + 
+#   geom_line() +
+#   geom_smooth(method = "lm", se = FALSE) +
+#   labs(x = "", y = expression(paste("Total C (gC m"^-2, ")"))) +
+#   theme_classic()
 
 #### NPP -----------------------------
 gg5 <- ddf |> 
   as_tibble() |> 
   ggplot(aes(date, npp)) + 
   geom_line() +
-  labs(x = "Date", y = expression(paste("NPP (gC m"^-2, " d"^-1, ")")))
+  labs(x = "", y = expression(paste("NPP (gC m"^-2, " d"^-1, ")"))) +
+  theme_classic()
 
-#### NPP ----------------------------- fraction to leaves
+#### NPP fraction to leaves -----------------------------
 gg6 <- ddf |> 
   as_tibble() |> 
   ggplot(aes(date, npp_leaf/npp)) + 
   geom_line() +
-  labs(x = "Date", y = "Fraction of leaf BP")
+  labs(x = "", y = "Fraction of leaf BP") +
+  theme_classic()
 
-#### NPP ----------------------------- fraction to root
+#### NPP fraction to root ----------------------------- 
 gg7 <- ddf |> 
   as_tibble() |> 
   ggplot(aes(date, npp_root/npp)) + 
   geom_line() +
-  labs(x = "Date", y = "Fraction of root BP")
+  labs(x = "", y = "Fraction of root BP") +
+  theme_classic()
 
-#### NPP ----------------------------- fraction to wood
+#### NPP fraction to wood -----------------------------
 gg8 <- ddf |> 
   as_tibble() |> 
   ggplot(aes(date, npp_wood/npp)) + 
   geom_line() +
-  labs(x = "Date", y = "Fraction of wood BP")
+  labs(x = "", y = "Fraction of wood BP") +
+  theme_classic()
 
 #### BPE -----------------------------
 gg9 <- ddf |> 
-  mutate(year = lubridate::year(date)) |> 
-  group_by(year) |> 
-  summarise(npp = sum(npp),
-            gpp = sum(gpp)) |> 
-  ggplot(aes(year, npp/gpp)) + 
+  # mutate(year = lubridate::year(date)) |> 
+  # group_by(year) |> 
+  # summarise(npp = sum(npp),
+  #           gpp = sum(gpp)) |> 
+  ggplot(aes(date, npp/gpp)) + 
   geom_line() +
-  labs(x = "Year", x = "BPE (unitless)")
+  ylim(0, 1) +
+  labs(x = "", y = "NPP/GPP") +
+  theme_classic()
 
-#### Cleaf -----------------------------
+#### Vegetation growth phenology -----------------------------
+gg_pheno <- ddf |> 
+  ggplot(aes(date, x1)) + 
+  geom_line() +
+  labs(x = "", y = "Growth phenology") +
+  theme_classic()
+
+#### C leaf -----------------------------
 gg10 <- ddf |> 
   ggplot(aes(date, cleaf)) + 
   geom_line() +
-  labs(x = "Year", x = expression(paste("Leaf C (gC m"^-2, ")")))
+  labs(x = "", y = expression(paste("Leaf C (gC m"^-2, ")"))) +
+  theme_classic()
+
+#### N leaf -----------------------------
+ggnleaf <- ddf |> 
+  ggplot(aes(date, nleaf)) + 
+  geom_line() +
+  labs(x = "", y = expression(paste("Leaf N (gN m"^-2, ")"))) +
+  theme_classic()
 
 #### Croot -----------------------------
 gg11 <- ddf |> 
   ggplot(aes(date, croot)) + 
   geom_line() +
-  labs(x = "Year", x = expression(paste("Root C (gC m"^-2, ")")))
+  labs(x = "", y = expression(paste("Root C (gC m"^-2, ")"))) +
+  theme_classic()
 
 #### Cwood -----------------------------
 gg26 <- ddf |> 
   ggplot(aes(date, cwood)) + 
   geom_line() +
-  labs(x = "Year", x = expression(paste("Wood C (gC m"^-2, ")")))
+  labs(x = "", y = expression(paste("Wood C (gC m"^-2, ")"))) +
+  theme_classic()
 
 #### Clabl -----------------------------
 gg12 <- ddf |> 
   ggplot(aes(date, clabl)) + 
   geom_line() +
-  labs(x = "Year", x = expression(paste("Labile C (gC m"^-2, ")")))
+  labs(x = "", y = expression(paste("Labile C (gC m"^-2, ")"))) +
+  theme_classic()
 
 #### Cresv -----------------------------
 gg13 <- ddf |> 
   ggplot(aes(date, cresv)) + 
   geom_line() +
-  labs(x = "Year", x = expression(paste("Reserves C (gC m"^-2, ")")))
+  ylim(0, 100) +
+  labs(x = "Date", y = expression(paste("Reserves C (gC m"^-2, ")"))) +
+  theme_classic()
 
 #### RMF -----------------------------
 gg14 <- ddf |> 
   as_tibble() |> 
   ggplot(aes(date, croot/(croot + cleaf + cwood))) + 
   geom_line() +
-  labs(x = "Date", y = "Root mass fraction")
+  ylim(0, 1) +
+  labs(x = "", y = "Root mass fraction") +
+  theme_classic()
 
 #### Clitt -----------------------------
 gg15 <- ddf |> 
   as_tibble() |> 
   ggplot(aes(date, clitt)) + 
   geom_line() +
-  labs(x = "Year", x = expression(paste("Litter C (gC m"^-2, ")")))
+  labs(x = "", y = expression(paste("Litter C (gC m"^-2, ")"))) +
+  theme_classic()
 
 #### Csoil -----------------------------
 gg16 <- ddf |> 
   as_tibble() |> 
   ggplot(aes(date, csoil)) + 
   geom_line() +
-  labs(x = "Year", x = expression(paste("Soil C (gC m"^-2, ")")))
+  labs(x = "", y = expression(paste("Soil C (gC m"^-2, ")"))) +
+  theme_classic()
 
 #### CNleaf -----------------------------
 gg17 <- ddf |> 
   as_tibble() |> 
   ggplot(aes(date, cleaf/nleaf)) + 
   geom_line() +
-  labs(x = "Year", x = expression(paste("Leaf C:N (gC gN"^-1, ")")))
+  ylim(51, 52) +
+  labs(x = "", y = expression(paste("Leaf C:N (gC gN"^-1, ")"))) +
+  theme_classic()
 
 #### CNlitt -----------------------------
 gg18 <- ddf |> 
   as_tibble() |> 
   ggplot(aes(date, clitt/nlitt)) + 
   geom_line() +
-  labs(x = "Year", x = expression(paste("Litter C:N (gC gN"^-1, ")")))
+  labs(x = "", y = expression(paste("Litter C:N (gC gN"^-1, ")"))) +
+  theme_classic()
 
 #### CNsoil -----------------------------
 gg19 <- ddf |> 
   as_tibble() |> 
   ggplot(aes(date, csoil/nsoil)) + 
   geom_line() +
-  labs(x = "Year", x = expression(paste("Soil C:N (gC gN"^-1, ")")))
+  labs(x = "", y = expression(paste("Soil C:N (gC gN"^-1, ")"))) +
+  theme_classic()
 
 #### Ninorg -----------------------------
 gg20 <- ddf |> 
   ggplot(aes(date, ninorg)) + 
   geom_line() +
-  labs(x = "Year", x = expression(paste("Soil inorganic N (gN m"^-2, ")")))
+  labs(x = "", y = expression(paste("Soil min. N (gN m"^-2, ")"))) +
+  theme_classic()
 
 #### Netmin -----------------------------
 gg21 <- ddf |> 
   as_tibble() |> 
   ggplot(aes(date, netmin)) + 
   geom_line() +
-  labs(x = "Date", y = expression(paste("Net N mineralization (gN m"^-2, " d"^-1, ")")))
+  labs(x = "", y = expression(paste("Net N min. (gN m"^-2, " d"^-1, ")"))) +
+  theme_classic()
 
 #### Nup -----------------------------
 gg22 <- ddf |> 
   as_tibble() |> 
   ggplot(aes(date, nup)) + 
   geom_line() +
-  labs(x = "Date", y = expression(paste("N uptake (gN m"^-2, " d"^-1, ")")))
+  labs(x = "", y = expression(paste("N uptake (gN m"^-2, " d"^-1, ")"))) +
+  theme_classic()
 
-#### Nloss ----------------------------- XXX problem: cannot be so high
+#### Nloss -----------------------------
 gg23 <- ddf |> 
   as_tibble() |> 
   ggplot(aes(date, nloss)) + 
   geom_line() +
-  labs(x = "Date", y = expression(paste("N loss (gN m"^-2, " d"^-1, ")")))
+  labs(x = "", y = expression(paste("N loss (gN m"^-2, " d"^-1, ")"))) +
+  theme_classic()
 
-#### Nup -----------------------------
+#### N fixation -----------------------------
 gg24 <- ddf |> 
   as_tibble() |> 
   ggplot(aes(date, nfix)) + 
   geom_line() +
-  labs(x = "Date", y = expression(paste("N fixation (gN m"^-2, " d"^-1, ")")))
+  labs(x = "", y = expression(paste("N fixation (gN m"^-2, " d"^-1, ")"))) +
+  theme_classic()
 
 #### tsoil -----------------------------
 gg25 <- ddf |> 
   as_tibble() |> 
   ggplot(aes(date, tsoil)) + 
   geom_line() +
-  labs(x = "Date", y = "°C")
+  labs(x = "Date", y = "Soil temperature (°C)") +
+  theme_classic()
 
 #### All -----------------
 ggout <- cowplot::plot_grid(
-  gg1, 
-  gg2, 
-  gg3, 
-  gg4, 
-  gg5, 
-  gg6, 
-  gg7, 
-  gg8, 
-  gg9, 
-  gg10, 
-  gg11, 
-  gg26,
-  gg12, 
-  gg13, 
-  gg14, 
-  gg15, 
-  gg16, 
-  gg17, 
-  gg18, 
-  gg19, 
-  gg20, 
-  gg21, 
-  gg22, 
-  gg23,
-  gg24,
-  ncol = 1
+  gg_pheno, # growth phenology
+  gg1,  # LAI
+  gg2,  # GPP
+  gg_reco,
+  gg3,  # NEP
+  gg4,  # cumulative NEP
+  # gg5,  # NPP
+  # gg6,  # NPP fraction to leaves
+  # gg7,  # NPP fraction to roots
+  # gg8,  # NPP fraction to wood
+  # gg9,  # BPE
+  gg10, # C leaves
+  gg11, # C roots
+  # ggnleaf, # leaf N
+  # gg26, # C wood
+  gg12, # C labl
+  gg13, # C resv
+  ncol = 1,
+  labels = letters[1:10],
+  align = "v", 
+  hjust = 0
   )
 
-ggsave(here::here("fig/tseries.pdf"), 
+ggsave(here::here("fig/tseries_1.pdf"), 
        plot = ggout,
        width = 8,
-       height = 35 )
+       height = 16
+       )
+
+ggout <- cowplot::plot_grid(
+  gg14, # root mass fraction
+  gg15, # litter C
+  gg16, # soil C
+  gg17, # leaf C:N
+  gg18, # litter C:N
+  # gg19, # soil C:N
+  gg20, # soil inorganic N
+  gg21, # Net N mineralisation 
+  gg22, # N uptake
+  gg23, # N loss
+  # gg24, # N fixation
+  gg25, # soil temperature
+  ncol = 1,
+  labels = letters[1:10],
+  align = "v", 
+  hjust = 0
+)
+
+ggsave(here::here("fig/tseries_2.pdf"), 
+       plot = ggout,
+       width = 8,
+       height = 16 )
 
 ### Annual time series: -----------------------
 # for visualising response to step increase
@@ -508,7 +596,7 @@ gg6 <- adf |>
   ggplot(aes(year, croot)) + 
   geom_line() +
   geom_vline(xintercept = 2009, linetype = "dotted") +
-  labs(x = "Date", y = "Root C")
+  labs(x = "Date", y = expression(paste("Root C (gC m"^-2, ")")))
 
 #### C leaf ----------------------------- 
 gg7 <- adf |> 
@@ -516,7 +604,15 @@ gg7 <- adf |>
   ggplot(aes(year, cleaf)) + 
   geom_line() +
   geom_vline(xintercept = 2009, linetype = "dotted") +
-  labs(x = "Date", y = "Leaf C")
+  labs(x = "Date", y =  expression(paste("Leaf C (gC m"^-2, ")")))
+
+#### N leaf ----------------------------- 
+gg_leafn <- adf |> 
+  as_tibble() |> 
+  ggplot(aes(year, nleaf)) + 
+  geom_line() +
+  geom_vline(xintercept = 2009, linetype = "dotted") +
+  labs(x = "Date", y =  expression(paste("Leaf N (gN m"^-2, ")")))
 
 #### RMF ----------------------------- 
 gg8 <- adf |> 
@@ -532,7 +628,7 @@ gg9 <- adf |>
   ggplot(aes(year, nup)) + 
   geom_line() +
   geom_vline(xintercept = 2009, linetype = "dotted") +
-  labs(x = "Date", y = "N uptake")
+  labs(x = "Date", y = expression(paste("N uptake (gN m"^-2, " yr"^-1, ")")))
 
 #### N inorganic pool ----------------------------- 
 gg10 <- adf |> 
@@ -540,7 +636,7 @@ gg10 <- adf |>
   ggplot(aes(year, ninorg)) + 
   geom_line() +
   geom_vline(xintercept = 2009, linetype = "dotted") +
-  labs(x = "Date", y = "Soil mineral N")
+  labs(x = "Date", y = expression(paste("Soil min. N (gN m"^-2, ")")))
 
 #### N loss ----------------------------- 
 gg11 <- adf |> 
@@ -548,7 +644,7 @@ gg11 <- adf |>
   ggplot(aes(year, nloss)) + 
   geom_vline(xintercept = 2009, linetype = "dotted") +
   geom_line() +
-  labs(x = "Date", y = "N loss")
+  labs(x = "Date", y = expression(paste("N loss (gN m"^-2, " yr"^-1, ")")))
 
 #### N mineralisation ----------------------------- 
 gg12 <- adf |> 
@@ -556,7 +652,7 @@ gg12 <- adf |>
   ggplot(aes(year, netmin)) + 
   geom_line() +
   geom_vline(xintercept = 2009, linetype = "dotted") +
-  labs(x = "Date", y = "Net N mineralisation")
+  labs(x = "Date", y = expression(paste("Net N min. (gN m"^-2, " yr"^-1, ")")))
 
 #### N cycle openness ----------------------------- 
 gg13 <- adf |> 
@@ -608,6 +704,13 @@ meanadf <- ddf |>
   summarise(across(where(is.numeric), sum)) |> 
   summarise(across(where(is.numeric), mean))
   
+mylabs <- c(
+  expression(paste(italic(N)[dep])),
+  expression(paste(italic(N)[min]^{net})),
+  expression(paste(italic(N)[loss])),
+  expression(paste(italic(N)[up]))
+)
+
 meanadf |> 
   mutate(ndep = dno3 + dnh4) |> 
   select(ndep, nloss, netmin, nup) |> 
@@ -617,7 +720,13 @@ meanadf |>
     values_to = "val"
   ) |> 
   ggplot(aes(var, val)) +
-  geom_bar(stat = "identity")
+  geom_bar(stat = "identity", fill = "#777055ff") +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_x_discrete("", labels = mylabs) +
+  theme_classic() +
+  labs(y = expression(paste("Value (gN m"^-2, " yr"^-1, ")")))
+
+ggsave(here::here("fig/ncycling_annual.pdf"), width = 4, height = 3)
 
 ### Spinup-----------------
 ## read (experimental) files
@@ -630,37 +739,83 @@ aout <- read_fwf(file = "out/out_rsofun.a.csoil.txt", col_types = "in") |>
   )
 
 # soil C spinup
-aout |>
-  # slice(1000:2008) |> 
+gg_soilc_spinup <- aout |>
   ggplot(aes(year, csoil)) +
   
-  # first soil equilibration year
-  geom_vline(xintercept = 600, linetype = "dotted") +
-
-  # start free allocation
+  # soil equilibration years
+  geom_vline(xintercept = 600, color = "#29a274ff") +
+  geom_vline(xintercept = 1500, color = "#29a274ff") +
+  
+  # start free allocation and closed N balance
   geom_vline(xintercept = 900, linetype = "dotted") +
+  geom_vline(xintercept = 1200, linetype = "dotted") +
+
+  # end of spinup
+  geom_vline(xintercept = 2000, linetype = "dotted") +
   
-  # second soil equilibration year
-  geom_vline(xintercept = 1500, linetype = "dotted") +
-  
-  geom_line() + 
+  geom_line(linewidth = 0.75) + 
+  xlim(0, 2007) +
+  labs(x = "Spin-up simulation year", 
+       y = expression(paste("Soil C (gC m"^-2, ")"))) +
   theme_classic()
+
+# soil C spinup
+gg_soilc_spinup_zoom <- aout |>
+  filter(year > 1450) |> 
+  ggplot(aes(year, csoil)) +
+  
+  # soil equilibration years
+  geom_vline(xintercept = 1500, color = "#29a274ff") +
+  
+  # end of spinup
+  geom_vline(xintercept = 2000, linetype = "dotted") +
+  
+  geom_line(linewidth = 0.75) + 
+  xlim(1450, 2007) +
+  ylim(19850, 20110) +
+  labs(x = "Spin-up simulation year", 
+       y = expression(paste("Soil C (gC m"^-2, ")"))) +
+  theme_classic()
+
+plot_grid(
+  gg_soilc_spinup,
+  gg_soilc_spinup_zoom,
+  nrow = 1,
+  labels = c("a", "b"), 
+  rel_widths = c(1, 0.6)
+)
+
+ggsave(here::here("fig/soilc_spinup.pdf"), width = 8, height = 3)
+
+# trend in soil C over last 100 years of spinup
+linmod <- lm(csoil ~ year, 
+             data = aout |> 
+               filter(year > 1900 & year < 2002))
+coef(linmod)[2]
+
+# relative change per year
+coef(linmod)[2] / mean(filter(aout, year > 1900 & year < 2002)$csoil)
 
 # soil N spinup
 aout |>
   # slice(1000:2008) |> 
   ggplot(aes(year, nsoil)) +
   
-  # first soil equilibration year
-  geom_vline(xintercept = 600, linetype = "dotted") +
-
-  # start free allocation
-  geom_vline(xintercept = 900, linetype = "dotted") +
+  # soil equilibration years
+  geom_vline(xintercept = 600, color = "#29a274ff") +
+  geom_vline(xintercept = 1500, color = "#29a274ff") +
   
-  # second soil equilibration year
-  geom_vline(xintercept = 1500, linetype = "dotted") +
+  # start free allocation and closed N balance
+  geom_vline(xintercept = 900, linetype = "dotted") +
+  geom_vline(xintercept = 1200, linetype = "dotted") +
+  
+  # end of spinup
+  geom_vline(xintercept = 2000, linetype = "dotted") +
   
   geom_line() + 
+  xlim(0, 2007) +
+  labs(x = "Spin-up simulation year", 
+       y = expression(paste("Soil N (gN m"^-2, ")"))) +
   theme_classic()
 
 ### Response ratios ---------------------------
@@ -714,22 +869,47 @@ ggrr <- ggplot() +
   labs(title = "cnmodel prediction", x = "Response to eCO2")
 
 ### Function visualisations -------------
-ggplot() +
-  geom_function(fun = calc_f_seed) +
-  xlim(-0.02,0.02) +
-  # geom_vline(xintercept = 1, linetype = "dotted") +
-  geom_vline(xintercept = 0, linetype = "dotted")
+# ggplot() +
+#   geom_function(fun = calc_f_seed) +
+#   xlim(-0.02,0.02) +
+#   # geom_vline(xintercept = 1, linetype = "dotted") +
+#   geom_vline(xintercept = 0, linetype = "dotted")
 
-calc_ft_growth <- function(temp){
-  yy <- 1 / (1 + exp(-(temp-5)))
-  return(yy)
+calc_f_dorm <- function(temp){
+  1 / (1 + exp(0.3 * (-temp + 2)))
 }
 
-ggplot() +
-  geom_function(fun = calc_ft_growth) +
-  xlim(-10, 20) +
-  geom_vline(xintercept = 0, linetype = "dotted")
+calc_f_release <- function(gdd){
+  1 / (1 + exp(0.05 * (-gdd + 150)))
+}
 
+gg_dorm <- ggplot() +
+  geom_function(fun = calc_f_dorm) +
+  xlim(-20, 30) +
+  geom_vline(xintercept = 0, linetype = "dotted") + 
+  theme_classic() +
+  labs(
+    x = expression(paste(italic("T")[min], " (°C)")),
+    y = expression(paste(italic("f")[dorm]))
+  )
+
+gg_release <- ggplot() +
+  geom_function(fun = calc_f_release) +
+  xlim(0, 300) +
+  theme_classic() +
+  labs(
+    x = expression(paste("GDD (°C)")),
+    y = expression(paste(italic("f")[release]))
+  )
+
+cowplot::plot_grid(
+  gg_dorm,
+  gg_release,
+  nrow = 1,
+  labels = letters[1:2]
+)
+
+ggsave(here::here("fig/fcold.pdf"), width = 6, height = 3)
 
 calc_f_nup <- function(conc){
   jmax <- 2
