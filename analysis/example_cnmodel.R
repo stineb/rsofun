@@ -222,6 +222,7 @@ output <- runread_cnmodel_f(
 )
 
 ## Output aggregation and summary statistics ------------------------
+### Annual totals
 adf <- output$data[[1]] |> 
   mutate(year = year(date)) |> 
   group_by(year) |> 
@@ -244,6 +245,7 @@ adf <- output$data[[1]] |>
     nloss = sum(nloss)
   )
 
+### Mean annual totals ---------------
 adf_mean <- adf |> 
   filter(year %in% 2002:2008) |> 
   summarise(across(where(is.numeric), mean)) |> 
@@ -253,6 +255,22 @@ adf_mean <- adf |>
          cnlitt = clitt/nlitt
          ) |> 
   pivot_longer(cols = everything())
+
+### Mean seasonal cycle --------
+msc <- output$data[[1]] |> 
+  mutate(doy = yday(date)) |> 
+  group_by(doy) |> 
+  summarise(
+    gpp = mean(gpp),
+    npp = mean(npp),
+    npp_leaf = mean(npp_leaf),
+    npp_root = mean(npp_root),
+    npp_wood = mean(npp_wood),
+    nup = mean(nup),
+    netmin = mean(netmin),
+    ninorg = mean(pno3 + pnh4),
+    nloss = mean(nloss)
+  )
 
 # keep first 7 years for visualising seasonal course
 ddf <- output$data[[1]][1:(7*365),]
@@ -356,10 +374,9 @@ gg9 <- ddf |>
   # group_by(year) |> 
   # summarise(npp = sum(npp),
   #           gpp = sum(gpp)) |> 
-  ggplot(aes(date, npp/gpp)) + 
+  ggplot(aes(date, x2/gpp)) + 
   geom_line() +
-  ylim(0, 1) +
-  labs(x = "", y = "NPP/GPP") +
+  labs(x = "", y = "BPE") +
   theme_classic()
 
 #### Vegetation growth phenology -----------------------------
@@ -521,13 +538,13 @@ ggout <- cowplot::plot_grid(
   # gg6,  # NPP fraction to leaves
   # gg7,  # NPP fraction to roots
   # gg8,  # NPP fraction to wood
-  # gg9,  # BPE
+  gg9,  # BPE
   gg10, # C leaves
-  gg11, # C roots
+  gg17, # leaf C:N
+  gg14, # root mass fraction
+  # gg11, # C roots
   # ggnleaf, # leaf N
   # gg26, # C wood
-  gg12, # C labl
-  gg13, # C resv
   ncol = 1,
   labels = letters[1:10],
   align = "v", 
@@ -541,10 +558,10 @@ ggsave(here::here("fig/tseries_1.pdf"),
        )
 
 ggout <- cowplot::plot_grid(
-  gg14, # root mass fraction
+  gg12, # C labl
+  gg13, # C resv
   gg15, # litter C
   gg16, # soil C
-  gg17, # leaf C:N
   gg18, # litter C:N
   # gg19, # soil C:N
   gg20, # soil inorganic N
