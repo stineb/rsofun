@@ -154,6 +154,8 @@ module md_plant_cnmodel
     real :: drsapw   ! sapwood maintenance respiration, no explicit isotopic signature as it is identical to the signature of GPP [gC/m2/d]
     real :: drgrow   ! growth respiration (growth+maintenance resp. of all compartments), no explicit isotopic signature as it is identical to the signature of GPP [gC/m2/d]
     real :: dcex     ! labile C exudation for N uptake, no explicit isotopic signature as it is identical to the signature of GPP [gC/m2/d]
+
+    type(orgpool) :: dlabl     ! labile turnover, doesn't appear as NPP, therefore needs to be accounted for separately [gC/m2/d]
     
     type(carbon)   :: dnpp     ! daily net primary production (gpp-ra, npp=bp+cex) [gC/m2/d]
     type(nitrogen) :: dnup     ! daily N uptake [gN/m2/d]

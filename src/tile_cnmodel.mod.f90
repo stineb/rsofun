@@ -189,6 +189,8 @@ module md_tile_cnmodel
     real :: drgrow   ! growth respiration (growth+maintenance resp. of all compartments), no explicit isotopic signature as it is identical to the signature of GPP [gC/m2/d]
     real :: dcex     ! labile C exudation for N uptake, no explicit isotopic signature as it is identical to the signature of GPP [gC/m2/d]
     
+    type(orgpool) :: dlabl     ! labile turnover, doesn't appear as NPP, therefore needs to be accounted for separately [gC/m2/d]
+
     type(carbon)   :: dnpp     ! daily net primary production (gpp-ra, npp=bp+cex) [gC/m2/d]
     type(nitrogen) :: dnup     ! daily N uptake [gN/m2/d]
 
@@ -601,6 +603,7 @@ contains
     tile_fluxes(:)%canopy%npp_leaf     = 0.0
     tile_fluxes(:)%canopy%npp_root     = 0.0
     tile_fluxes(:)%canopy%npp_wood     = 0.0
+    tile_fluxes(:)%canopy%npp_seed     = 0.0
 
     ! soil
     do lu=1,nlu
@@ -611,6 +614,8 @@ contains
       call cinit(tile_fluxes(lu)%soil%drhet)
 
       call orginit(tile_fluxes(lu)%canopy%dharv)
+
+      call orginit(tile_fluxes(lu)%canopy%dlabl)
 
       ! plant
       call init_plant_fluxes( tile_fluxes(lu)%plant(:) )
@@ -705,6 +710,7 @@ contains
     tile_fluxes(:)%canopy%actnv_unitiabs = 0.0
 
     do lu=1,nlu
+      call orginit( tile_fluxes(lu)%canopy%dlabl )
       call orginit( tile_fluxes(lu)%canopy%dharv )
       call cinit( tile_fluxes(lu)%canopy%dnpp )
       call ninit( tile_fluxes(lu)%canopy%dnup )
@@ -792,6 +798,7 @@ contains
       tile_fluxes(lu)%canopy%dnpp  = cplus( tile_fluxes(lu)%canopy%dnpp, tile_fluxes(lu)%plant(pft)%dnpp )
       tile_fluxes(lu)%canopy%dnup  = nplus( tile_fluxes(lu)%canopy%dnup, tile_fluxes(lu)%plant(pft)%dnup )
       tile_fluxes(lu)%canopy%dharv = orgplus( tile_fluxes(lu)%canopy%dharv, tile_fluxes(lu)%plant(pft)%dharv )
+      tile_fluxes(lu)%canopy%dlabl = orgplus( tile_fluxes(lu)%canopy%dlabl, tile_fluxes(lu)%plant(pft)%dlabl )
 
       !----------------------------------------------------------------
       ! pools
@@ -925,6 +932,10 @@ contains
     out_biosphere%nresv    = tile(lu)%plant(pft)%presv%n%n14
     out_biosphere%rgrow    = tile_fluxes(lu)%plant(pft)%drgrow
     out_biosphere%npp_seed = tile_fluxes(lu)%canopy%npp_seed
+    out_biosphere%dclabl   = tile_fluxes(lu)%plant(pft)%dlabl%c%c12
+    out_biosphere%dnlabl   = tile_fluxes(lu)%plant(pft)%dlabl%n%n14    
+
+    print*,'diag_dail: out_biosphere%dclabl = ', out_biosphere%dclabl
 
     ! for debugging purposes
     out_biosphere%x1       = tile_fluxes(lu)%plant(pft)%debug1

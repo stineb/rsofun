@@ -20,13 +20,14 @@ module md_turnover
 
 contains
 
-  subroutine turnover( tile, doy )
+  subroutine turnover( tile, tile_fluxes, doy )
     !////////////////////////////////////////////////////////////////
     !  Annual vegetation biomass turnover, called at the end of the
     !  year.
     !----------------------------------------------------------------
     ! arguments
     type(tile_type), dimension(nlu), intent(inout) :: tile
+    type(tile_fluxes_type), dimension(nlu), intent(inout) :: tile_fluxes
     integer, intent(in) :: doy
 
     ! local variables
@@ -177,7 +178,7 @@ contains
       if (verbose) cbal1 = tile(lu)%plant(pft)%proot%c%c12 + tile(lu)%soil%plitt_bg%c%c12
       if (verbose) nbal1 = tile(lu)%plant(pft)%plabl%n%n14 + tile(lu)%plant(pft)%proot%n%n14 + tile(lu)%soil%plitt_bg%n%n14
       !--------------------------------------------------------------
-      if ( dlabl > 0.0 .and. tile(lu)%plant(pft)%pleaf%c%c12 > 0.0 ) call turnover_labl( dlabl, tile(lu), pft )
+      if ( dlabl > 0.0 .and. tile(lu)%plant(pft)%pleaf%c%c12 > 0.0 ) call turnover_labl( dlabl, tile(lu), tile_fluxes(lu), pft )
       !--------------------------------------------------------------
       if (verbose) print*, '              ==> returned: '
       if (verbose) print*, '              plabl = ', tile(lu)%plant(pft)%plabl
@@ -405,13 +406,14 @@ contains
   end subroutine turnover_seed
 
 
-  subroutine turnover_labl( dlabl, tile, pft )
+  subroutine turnover_labl( dlabl, tile, tile_fluxes, pft )
     !//////////////////////////////////////////////////////////////////
     ! labile C and N turnover.
     !------------------------------------------------------------------
     ! arguments
     real, intent(in) :: dlabl
     type( tile_type ), intent(inout)  :: tile
+    type( tile_fluxes_type ), intent(inout)  :: tile_fluxes
     integer, intent(in) :: pft
 
     ! local variables
@@ -420,13 +422,16 @@ contains
     ! detelbine absolute turnover
     lb_turn = orgfrac( dlabl, tile%plant(pft)%plabl ) ! labl turnover
 
+    ! labile turnover to be recorded for output
+    tile_fluxes%plant(pft)%dlabl = lb_turn
+
+    print*,'turnover_labl: tile_fluxes%plant(pft)%dlabl =', tile_fluxes%plant(pft)%dlabl
+
     ! reduce labile mass
     call orgsub( lb_turn, tile%plant(pft)%plabl )
 
     ! call orgmvRec( lb_turn, lb_turn, tile%plant(pft)%plitt_af, outaCveg2lit(pft,jpngr), outaNveg2lit(pft,jpngr), scale = real(tile%plant(pft)%nind) 
     call orgmv( lb_turn, lb_turn, tile%soil%plitt_af, scale = real(tile%plant(pft)%nind) )
-
-    ! labile turnover to be recorded for output
 
   end subroutine turnover_labl
 

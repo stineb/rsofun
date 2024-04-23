@@ -268,7 +268,7 @@ msc <- ddf |>
     month = month(date),
     doy = yday(date)
     ) |> 
-  group_by(month) |> 
+  group_by(doy) |> 
   summarise(
     doy = mean(doy),
     gpp = mean(gpp),
@@ -282,66 +282,13 @@ msc <- ddf |>
     rwood = mean(rwood),
     rroot = mean(rroot),
     rgrow = mean(rgrow),
+    dclabl = mean(dclabl),
     nup = mean(nup),
     netmin = mean(netmin),
     ninorg = mean(pno3 + pnh4),
     nloss = mean(nloss)
   ) |> 
   mutate(date = ymd("2023-01-01") + floor(doy) - 1)
-
-## Allocation for mean seasonal cycle
-msc |> 
-  ggplot() +
-  geom_ribbon(
-    aes(
-      date, 
-      ymin = 0,
-      ymax = npp_root,
-      fill = "Root production"
-      )
-  ) +
-  geom_ribbon(
-    aes(
-      date, 
-      ymin = npp_root,
-      ymax = npp_root + npp_leaf + npp_seed, # seed C is zero 
-      fill = "Leaf production"
-    )
-  ) +
-  geom_ribbon(
-    aes(
-      date, 
-      ymin = npp_root + npp_leaf + npp_seed,
-      ymax = npp_root + npp_leaf + npp_seed + rcex,
-      fill = "Exudates"
-    )
-  ) +
-  geom_ribbon(
-    aes(
-      date, 
-      ymin = npp_root + npp_leaf + npp_seed + rcex,
-      ymax = npp_root + npp_leaf + npp_seed + rcex + rleaf + rwood + rroot + rgrow,
-      fill = "Respiration"
-    )
-  ) +
-  geom_point(
-    aes(
-      date, 
-      gpp), 
-    size = 3
-  ) +
-  geom_line(
-    aes(
-      date, 
-      gpp), 
-    color = "grey"
-  ) +
-  scale_x_date(
-    date_breaks = "1 month", 
-    date_labels = "%b"
-    ) +
-  khroma::scale_fill_okabeito(name = "") +
-  theme_classic()
 
 ## Visualisations  ------------------------
 ### Daily time series ---------------------------
@@ -776,6 +723,126 @@ ggsave(here::here("fig/tseries_eco2.pdf"),
        plot = ggout,
        width = 8,
        height = 16 )
+
+### Allocation for mean seasonal cycle -----------------
+gg1 <- msc |> 
+  ggplot() +
+  geom_ribbon(
+    aes(
+      date, 
+      ymin = 0,
+      ymax = npp_leaf,
+      fill = "Leaf production"
+    )
+  ) +
+  geom_ribbon(
+    aes(
+      date, 
+      ymin = npp_leaf,
+      ymax = npp_leaf + npp_seed + npp_root, # seed C is zero 
+      fill = "Root production"
+    )
+  ) +
+  geom_ribbon(
+    aes(
+      date, 
+      ymin = npp_root + npp_leaf + npp_seed,
+      ymax = npp_root + npp_leaf + npp_seed + rcex,
+      fill = "Exudates"
+    )
+  ) +
+  geom_ribbon(
+    aes(
+      date, 
+      ymin = npp_root + npp_leaf + npp_seed + rcex,
+      ymax = npp_root + npp_leaf + npp_seed + rcex + rleaf + rwood + rroot + rgrow + dclabl,
+      fill = "Respiration"
+    )
+  ) +
+  geom_line(
+    aes(
+      date, 
+      gpp,
+      color = "GPP")
+  ) +
+  scale_x_date(
+    date_breaks = "1 month", 
+    date_labels = "%b",
+    expand = c(0, 0)
+  ) +
+  khroma::scale_color_okabeito(name = "") +
+  scale_fill_manual(
+    name = "",
+    values = c(
+      "Leaf production" = "#009E73",
+      "Root production" = "#E69F00",
+      "Exudates" = "#CC79A7",
+      "Respiration" = "#56B4E9"
+    )  
+  ) +
+  theme_classic() +
+  labs(
+    x = "",
+    y = expression(paste("C flux (gC m"^-2, " d"^-1, ")"))
+  ) +
+  scale_y_continuous(expand = c(0, 0))
+
+msc_agg <- msc |> 
+  mutate(
+    npp_leaf = npp_leaf + npp_seed,
+    resp = rleaf + rwood + rroot + rgrow + dclabl
+  ) |> 
+  summarise(
+    gpp = sum(gpp),
+    `Leaf production` = sum(npp_leaf),
+    `Root production` = sum(npp_root),
+    Exudates = sum(rcex),
+    Respiration = sum(resp)
+  )
+
+tmp <- msc_agg |> 
+  dplyr::select(-gpp) |> 
+  pivot_longer(cols = everything()) |> 
+  mutate(category = "Sinks") |> 
+  bind_rows(
+    tibble(
+      name = "gpp",
+      value = msc_agg$gpp,
+      category = "GPP"
+    )
+  )
+
+gg2 <- tmp |> 
+  mutate(name = factor(name, levels = rev(c("Leaf production", "Root production", "Exudates", "Respiration")))) |> 
+  ggplot() +
+  geom_bar(
+    aes(x = category, y = value, fill = name), 
+    stat = "identity",
+    position="stack"
+  ) +
+  theme_classic() +
+  scale_fill_manual(
+    name = "",
+    values = c(
+      "Leaf production" = "#009E73",
+      "Root production" = "#E69F00",
+      "Exudates" = "#CC79A7",
+      "Respiration" = "#56B4E9"
+    )
+  ) +
+  labs(
+    x = "",
+    y = expression(paste("Cumulative C flux (gC m"^-2, "yr"^-1, ")"))
+  ) + 
+  theme(legend.position="none") +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1600))
+
+plot_grid(
+  gg1, 
+  gg2, 
+  rel_widths = c(1, 0.5),
+  labels = c("a", "b")
+)
 
 ### Annual total N budget -----------------
 meanadf <- ddf |> 

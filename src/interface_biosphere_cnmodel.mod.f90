@@ -183,6 +183,8 @@ module md_interface_cnmodel
     real :: nresv
     real :: rgrow
     real :: npp_seed
+    real :: dclabl
+    real :: dnlabl
     real :: x1
     real :: x2
     real :: x3
