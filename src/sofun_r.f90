@@ -552,10 +552,11 @@ contains
         output(idx_start:idx_end,56) = dble(out_biosphere(:)%cresv )
         output(idx_start:idx_end,57) = dble(out_biosphere(:)%nresv )
         output(idx_start:idx_end,58) = dble(out_biosphere(:)%rgrow )
-        output(idx_start:idx_end,59) = dble(out_biosphere(:)%x1 )
-        output(idx_start:idx_end,60) = dble(out_biosphere(:)%x2 )
-        output(idx_start:idx_end,61) = dble(out_biosphere(:)%x3 )
-        output(idx_start:idx_end,62) = dble(out_biosphere(:)%x4 )
+        output(idx_start:idx_end,59) = dble(out_biosphere(:)%npp_seed )
+        output(idx_start:idx_end,60) = dble(out_biosphere(:)%x1 )
+        output(idx_start:idx_end,61) = dble(out_biosphere(:)%x2 )
+        output(idx_start:idx_end,62) = dble(out_biosphere(:)%x3 )
+        output(idx_start:idx_end,63) = dble(out_biosphere(:)%x4 )
 
       end if
 

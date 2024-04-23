@@ -420,13 +420,13 @@ contains
     ! detelbine absolute turnover
     lb_turn = orgfrac( dlabl, tile%plant(pft)%plabl ) ! labl turnover
 
-    !! xxx think of something more plausible to put the labile C and N to
-
     ! reduce labile mass
     call orgsub( lb_turn, tile%plant(pft)%plabl )
 
     ! call orgmvRec( lb_turn, lb_turn, tile%plant(pft)%plitt_af, outaCveg2lit(pft,jpngr), outaNveg2lit(pft,jpngr), scale = real(tile%plant(pft)%nind) 
     call orgmv( lb_turn, lb_turn, tile%soil%plitt_af, scale = real(tile%plant(pft)%nind) )
+
+    ! labile turnover to be recorded for output
 
   end subroutine turnover_labl
 

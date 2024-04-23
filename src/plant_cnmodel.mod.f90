@@ -177,6 +177,7 @@ module md_plant_cnmodel
     real :: npp_leaf          ! carbon allocated to leaves (g C m-2 d-1)
     real :: npp_root          ! carbon allocated to roots (g C m-2 d-1)
     real :: npp_wood          ! carbon allocated to wood (sapwood (g C m-2 d-1))
+    real :: npp_seed          ! carbon allocated to seeds (g C m-2 d-1)
 
     real :: debug1             ! write anything into this
     real :: debug2             ! write anything into this

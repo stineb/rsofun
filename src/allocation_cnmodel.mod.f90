@@ -501,6 +501,7 @@ contains
       tile_fluxes(lu)%plant(pft)%npp_leaf = dcleaf
       tile_fluxes(lu)%plant(pft)%npp_root = dcroot
       tile_fluxes(lu)%plant(pft)%npp_wood = dcwood
+      tile_fluxes(lu)%plant(pft)%npp_seed = dcseed
 
       ! provisional BP
       tile_fluxes(lu)%plant(pft)%debug2 = dcleaf + dcroot + dcwood + dcseed

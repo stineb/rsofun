@@ -133,7 +133,7 @@ if (!file.exists(filnam) || overwrite){
   df_ndep <- ingestr::ingest(
     df_drivers_ch_oe1 |>
       unnest(site_info) |>
-      select(sitename, lon, lat) |>
+      dplyr::select(sitename, lon, lat) |>
       mutate(year_start = min(lubridate::year(df_drivers_ch_oe1$forcing[[1]]$date)),
              year_end = max(lubridate::year(df_drivers_ch_oe1$forcing[[1]]$date))),
     source    = "ndep",
@@ -237,12 +237,14 @@ adf <- ddf |>
     npp_leaf = sum(npp_leaf),
     npp_root = sum(npp_root),
     npp_wood = sum(npp_wood),
+    npp_seed = sum(npp_seed),
     cleaf = mean(cleaf),
     nleaf = mean(nleaf),
     clitt = mean(clitt),
     nlitt = mean(nlitt),
     croot = mean(croot),
     cwood = mean(cwood),
+    cseed = mean(cseed),
     nup = sum(nup),
     netmin = sum(netmin),
     ninorg = mean(pno3 + pnh4),
@@ -274,6 +276,7 @@ msc <- ddf |>
     npp_leaf = mean(npp_leaf),
     npp_root = mean(npp_root),
     npp_wood = mean(npp_wood),
+    npp_seed = mean(npp_seed),
     rcex = mean(rcex),
     rleaf = mean(rleaf),
     rwood = mean(rwood),
@@ -301,23 +304,23 @@ msc |>
     aes(
       date, 
       ymin = npp_root,
-      ymax = npp_root + npp_leaf,
+      ymax = npp_root + npp_leaf + npp_seed, # seed C is zero 
       fill = "Leaf production"
     )
   ) +
   geom_ribbon(
     aes(
       date, 
-      ymin = npp_root + npp_leaf,
-      ymax = npp_root + npp_leaf + rcex,
+      ymin = npp_root + npp_leaf + npp_seed,
+      ymax = npp_root + npp_leaf + npp_seed + rcex,
       fill = "Exudates"
     )
   ) +
   geom_ribbon(
     aes(
       date, 
-      ymin = npp_root + npp_leaf + rcex,
-      ymax = npp_root + npp_leaf + rcex + rleaf + rwood + rroot + rgrow,
+      ymin = npp_root + npp_leaf + npp_seed + rcex,
+      ymax = npp_root + npp_leaf + npp_seed + rcex + rleaf + rwood + rroot + rgrow,
       fill = "Respiration"
     )
   ) +
@@ -337,7 +340,7 @@ msc |>
     date_breaks = "1 month", 
     date_labels = "%b"
     ) +
-  khroma::scale_fill_okabeito() +
+  khroma::scale_fill_okabeito(name = "") +
   theme_classic()
 
 ## Visualisations  ------------------------
@@ -371,7 +374,7 @@ gg3 <- ddf |>
 # by GPP
 gg4 <- ddf |> 
   as_tibble() |> 
-  ggplot(aes(date, cumsum(gpp - rleaf - rwood - rroot - rhet))) + 
+  ggplot(aes(date, cumsum(gpp - rleaf - rwood - rroot - rhet - rgrow))) + 
   geom_line() +
   # geom_smooth(method = "lm", se = FALSE) +
   labs(x = "", y = expression(paste("Cum. NEP (gC m"^-2, ")"))) +
@@ -795,7 +798,7 @@ mylabs <- c(
 
 meanadf |> 
   mutate(ndep = dno3 + dnh4) |> 
-  select(ndep, nloss, netmin, nup) |> 
+  dplyr::select(ndep, nloss, netmin, nup) |> 
   pivot_longer(
     cols = c(ndep, nloss, netmin, nup),
     names_to = "var",
@@ -907,7 +910,7 @@ df_out <- output$data[[1]] |>
          n_inorg = pno3 + pnh4,
          anpp = npp_leaf + npp_wood, 
          bnpp = npp_root + cex) |> 
-  select(date, asat, gpp, vcmax, jmax, gs = gs_accl, narea, leaf_cn, lai, cleaf, 
+  dplyr::select(date, asat, gpp, vcmax, jmax, gs = gs_accl, narea, leaf_cn, lai, cleaf, 
          croot, root_shoot, nup, n_inorg, anpp, bnpp)
 
 df_amb <- df_out |> 
