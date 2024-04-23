@@ -181,6 +181,7 @@ module md_interface_cnmodel
     real :: rhet
     real :: cresv
     real :: nresv
+    real :: rgrow
     real :: x1
     real :: x2
     real :: x3

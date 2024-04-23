@@ -222,8 +222,12 @@ output <- runread_cnmodel_f(
 )
 
 ## Output aggregation and summary statistics ------------------------
+
+# keep first 7 years for visualising seasonal course
+ddf <- output$data[[1]][1:(7*365),]
+
 ### Annual totals
-adf <- output$data[[1]] |> 
+adf <- ddf |> 
   mutate(year = year(date)) |> 
   group_by(year) |> 
   summarise(
@@ -249,7 +253,7 @@ adf <- output$data[[1]] |>
 adf_mean <- adf |> 
   filter(year %in% 2002:2008) |> 
   summarise(across(where(is.numeric), mean)) |> 
-  select(-year) |> 
+  dplyr::select(-year) |> 
   mutate(cue = npp/gpp,
          cnleaf = cleaf/nleaf,
          cnlitt = clitt/nlitt
@@ -257,23 +261,84 @@ adf_mean <- adf |>
   pivot_longer(cols = everything())
 
 ### Mean seasonal cycle --------
-msc <- output$data[[1]] |> 
-  mutate(doy = yday(date)) |> 
-  group_by(doy) |> 
+msc <- ddf |> 
+  mutate(
+    month = month(date),
+    doy = yday(date)
+    ) |> 
+  group_by(month) |> 
   summarise(
+    doy = mean(doy),
     gpp = mean(gpp),
     npp = mean(npp),
     npp_leaf = mean(npp_leaf),
     npp_root = mean(npp_root),
     npp_wood = mean(npp_wood),
+    rcex = mean(rcex),
+    rleaf = mean(rleaf),
+    rwood = mean(rwood),
+    rroot = mean(rroot),
+    rgrow = mean(rgrow),
     nup = mean(nup),
     netmin = mean(netmin),
     ninorg = mean(pno3 + pnh4),
     nloss = mean(nloss)
-  )
+  ) |> 
+  mutate(date = ymd("2023-01-01") + floor(doy) - 1)
 
-# keep first 7 years for visualising seasonal course
-ddf <- output$data[[1]][1:(7*365),]
+## Allocation for mean seasonal cycle
+msc |> 
+  ggplot() +
+  geom_ribbon(
+    aes(
+      date, 
+      ymin = 0,
+      ymax = npp_root,
+      fill = "Root production"
+      )
+  ) +
+  geom_ribbon(
+    aes(
+      date, 
+      ymin = npp_root,
+      ymax = npp_root + npp_leaf,
+      fill = "Leaf production"
+    )
+  ) +
+  geom_ribbon(
+    aes(
+      date, 
+      ymin = npp_root + npp_leaf,
+      ymax = npp_root + npp_leaf + rcex,
+      fill = "Exudates"
+    )
+  ) +
+  geom_ribbon(
+    aes(
+      date, 
+      ymin = npp_root + npp_leaf + rcex,
+      ymax = npp_root + npp_leaf + rcex + rleaf + rwood + rroot + rgrow,
+      fill = "Respiration"
+    )
+  ) +
+  geom_point(
+    aes(
+      date, 
+      gpp), 
+    size = 3
+  ) +
+  geom_line(
+    aes(
+      date, 
+      gpp), 
+    color = "grey"
+  ) +
+  scale_x_date(
+    date_breaks = "1 month", 
+    date_labels = "%b"
+    ) +
+  khroma::scale_fill_okabeito() +
+  theme_classic()
 
 ## Visualisations  ------------------------
 ### Daily time series ---------------------------
