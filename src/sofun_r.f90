@@ -555,10 +555,15 @@ contains
         output(idx_start:idx_end,59) = dble(out_biosphere(:)%npp_seed )
         output(idx_start:idx_end,60) = dble(out_biosphere(:)%dclabl )
         output(idx_start:idx_end,61) = dble(out_biosphere(:)%dnlabl )
-        output(idx_start:idx_end,62) = dble(out_biosphere(:)%x1 )
-        output(idx_start:idx_end,63) = dble(out_biosphere(:)%x2 )
-        output(idx_start:idx_end,64) = dble(out_biosphere(:)%x3 )
-        output(idx_start:idx_end,65) = dble(out_biosphere(:)%x4 )
+        output(idx_start:idx_end,62) = dble(out_biosphere(:)%dnleaf )
+        output(idx_start:idx_end,63) = dble(out_biosphere(:)%dnroot )
+        output(idx_start:idx_end,64) = dble(out_biosphere(:)%dnwood )
+        output(idx_start:idx_end,65) = dble(out_biosphere(:)%dnseed )
+        output(idx_start:idx_end,66) = dble(out_biosphere(:)%nresorb )
+        output(idx_start:idx_end,67) = dble(out_biosphere(:)%x1 )
+        output(idx_start:idx_end,68) = dble(out_biosphere(:)%x2 )
+        output(idx_start:idx_end,69) = dble(out_biosphere(:)%x3 )
+        output(idx_start:idx_end,70) = dble(out_biosphere(:)%x4 )
 
       end if
 

@@ -163,7 +163,7 @@ module md_plant_cnmodel
     real :: dnup_pas          ! daily N uptake by passsive uptake (transpiration) [gN/m2/d]
     real :: dnup_act          ! daily N uptake by active uptake [gN/m2/d]
     real :: dnup_fix          ! daily N uptake by plant symbiotic N fixation [gN/m2/d]
-    real :: dnup_ret          ! daily N "uptake" by plant symbiotic N fixation [gN/m2/d]
+    real :: dnup_res          ! daily N resorption [gN/m2/d]
 
     real :: vcmax25           ! acclimated Vcmax, normalised to 25 deg C (mol CO2 m-2 s-1)
     real :: jmax25            ! acclimated Jmax, normalised to 25 deg C (mol CO2 m-2 s-1)
@@ -176,10 +176,10 @@ module md_plant_cnmodel
     real :: lue               ! light use efficiency (gC m-2 mol-1)
     real :: vcmax25_unitfapar ! acclimated Vcmax per unit fAPAR, normalised to 25 deg C (mol CO2 m-2 s-1)
 
-    real :: npp_leaf          ! carbon allocated to leaves (g C m-2 d-1)
-    real :: npp_root          ! carbon allocated to roots (g C m-2 d-1)
-    real :: npp_wood          ! carbon allocated to wood (sapwood (g C m-2 d-1))
-    real :: npp_seed          ! carbon allocated to seeds (g C m-2 d-1)
+    type(orgpool) :: npp_leaf          ! carbon and nitrogen allocated to leaves (g m-2 d-1)
+    type(orgpool) :: npp_root          ! carbon and nitrogen allocated to roots (g m-2 d-1)
+    type(orgpool) :: npp_wood          ! carbon and nitrogen allocated to wood (sapwood (g m-2 d-1))
+    type(orgpool) :: npp_seed          ! carbon and nitrogen allocated to seeds (g m-2 d-1)
 
     real :: debug1             ! write anything into this
     real :: debug2             ! write anything into this
@@ -188,7 +188,7 @@ module md_plant_cnmodel
 
     type(orgpool) :: dharv    ! daily total biomass harvest (g m-2 d-1)
 
-    type(orgpool) :: alloc_leaf, alloc_root, alloc_sapw, alloc_wood, alloc_seed
+    ! type(orgpool) :: alloc_leaf, alloc_root, alloc_sapw, alloc_wood, alloc_seed
 
   end type plant_fluxes_type
 
@@ -771,7 +771,7 @@ contains
     plant_fluxes(:)%dnup_pas = 0.0
     plant_fluxes(:)%dnup_act = 0.0
     plant_fluxes(:)%dnup_fix = 0.0
-    plant_fluxes(:)%dnup_ret = 0.0
+    plant_fluxes(:)%dnup_res = 0.0
     plant_fluxes(:)%vcmax25 = 0.0
     plant_fluxes(:)%jmax25 = 0.0
     plant_fluxes(:)%vcmax = 0.0
@@ -782,18 +782,19 @@ contains
     plant_fluxes(:)%asat = 0.0
     plant_fluxes(:)%lue = 0.0
     plant_fluxes(:)%vcmax25_unitfapar = 0.0
-    plant_fluxes(:)%npp_leaf = 0.0
-    plant_fluxes(:)%npp_root = 0.0
-    plant_fluxes(:)%npp_wood = 0.0
 
     do pft=1,npft
       call orginit( plant_fluxes(pft)%dharv )
-      call orginit( plant_fluxes(pft)%alloc_leaf )
-      call orginit( plant_fluxes(pft)%alloc_root )
-      call orginit( plant_fluxes(pft)%alloc_sapw )
-      call orginit( plant_fluxes(pft)%alloc_wood )
+      ! call orginit( plant_fluxes(pft)%alloc_leaf )
+      ! call orginit( plant_fluxes(pft)%alloc_root )
+      ! call orginit( plant_fluxes(pft)%alloc_sapw )
+      ! call orginit( plant_fluxes(pft)%alloc_wood )
       call cinit(   plant_fluxes(pft)%dnpp )
       call ninit(   plant_fluxes(pft)%dnup )
+      call orginit( plant_fluxes(pft)%npp_leaf )
+      call orginit( plant_fluxes(pft)%npp_root )
+      call orginit( plant_fluxes(pft)%npp_wood )
+      call orginit( plant_fluxes(pft)%npp_seed )
     end do
 
   end subroutine init_plant_fluxes

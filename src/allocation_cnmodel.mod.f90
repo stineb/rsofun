@@ -488,20 +488,20 @@ contains
       !-------------------------------------------------------------------
       tile_fluxes(lu)%plant(pft)%dnpp = cminus( tile_fluxes(lu)%plant(pft)%dnpp, carbon( tile_fluxes(lu)%plant(pft)%drgrow ) )
 
-      ! record for today
-      tile_fluxes(lu)%plant(pft)%alloc_leaf = orgpool( carbon( dcleaf ), nitrogen( dnleaf ) )
-      tile_fluxes(lu)%plant(pft)%alloc_root = orgpool( carbon( dcroot ), nitrogen( dnroot ) )
-      tile_fluxes(lu)%plant(pft)%alloc_seed = orgpool( carbon( dcseed ), nitrogen( dnseed ) )
-      call orginit( tile_fluxes(lu)%plant(pft)%alloc_sapw )
-      call orginit( tile_fluxes(lu)%plant(pft)%alloc_wood )
+      ! ! record for today
+      ! tile_fluxes(lu)%plant(pft)%alloc_leaf = orgpool( carbon( dcleaf ), nitrogen( dnleaf ) )
+      ! tile_fluxes(lu)%plant(pft)%alloc_root = orgpool( carbon( dcroot ), nitrogen( dnroot ) )
+      ! tile_fluxes(lu)%plant(pft)%alloc_seed = orgpool( carbon( dcseed ), nitrogen( dnseed ) )
+      ! call orginit( tile_fluxes(lu)%plant(pft)%alloc_sapw )
+      ! call orginit( tile_fluxes(lu)%plant(pft)%alloc_wood )
 
       !-------------------------------------------------------------------
       ! Record for output
       !-------------------------------------------------------------------
-      tile_fluxes(lu)%plant(pft)%npp_leaf = dcleaf
-      tile_fluxes(lu)%plant(pft)%npp_root = dcroot
-      tile_fluxes(lu)%plant(pft)%npp_wood = dcwood
-      tile_fluxes(lu)%plant(pft)%npp_seed = dcseed
+      tile_fluxes(lu)%plant(pft)%npp_leaf = orgpool( carbon(dcleaf), nitrogen( dnleaf ) )
+      tile_fluxes(lu)%plant(pft)%npp_root = orgpool( carbon(dcroot), nitrogen( dnroot ) )
+      tile_fluxes(lu)%plant(pft)%npp_wood = orgpool( carbon(dcwood), nitrogen( dnwood ) )
+      tile_fluxes(lu)%plant(pft)%npp_seed = orgpool( carbon(dcseed), nitrogen( dnseed ) )
 
       ! provisional BP
       tile_fluxes(lu)%plant(pft)%debug2 = dcleaf + dcroot + dcwood + dcseed

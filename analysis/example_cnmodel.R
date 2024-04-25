@@ -286,7 +286,13 @@ msc <- ddf |>
     nup = mean(nup),
     netmin = mean(netmin),
     ninorg = mean(pno3 + pnh4),
-    nloss = mean(nloss)
+    nloss = mean(nloss),
+    dnleaf = mean(dnleaf),
+    dnroot = mean(dnroot),
+    dnwood = mean(dnwood),
+    dnseed = mean(dnseed),
+    dnlabl = mean(dnlabl),
+    nresorb = mean(nresorb)
   ) |> 
   mutate(date = ymd("2023-01-01") + floor(doy) - 1)
 
@@ -724,7 +730,8 @@ ggsave(here::here("fig/tseries_eco2.pdf"),
        width = 8,
        height = 16 )
 
-### Allocation for mean seasonal cycle -----------------
+### C allocation -----------------
+# for mean seasonal cycle
 gg1 <- msc |> 
   ggplot() +
   geom_ribbon(
@@ -755,7 +762,15 @@ gg1 <- msc |>
     aes(
       date, 
       ymin = npp_root + npp_leaf + npp_seed + rcex,
-      ymax = npp_root + npp_leaf + npp_seed + rcex + rleaf + rwood + rroot + rgrow + dclabl,
+      ymax = npp_root + npp_leaf + npp_seed + rcex + dclabl,
+      fill = "Labile turnover"
+    )
+  ) +
+  geom_ribbon(
+    aes(
+      date, 
+      ymin = npp_root + npp_leaf + npp_seed + rcex + dclabl,
+      ymax = npp_root + npp_leaf + npp_seed + rcex + dclabl + rleaf + rwood + rroot + rgrow,
       fill = "Respiration"
     )
   ) +
@@ -777,6 +792,7 @@ gg1 <- msc |>
       "Leaf production" = "#009E73",
       "Root production" = "#E69F00",
       "Exudates" = "#CC79A7",
+      "Labile turnover" = "#0072B2",
       "Respiration" = "#56B4E9"
     )  
   ) +
@@ -790,13 +806,14 @@ gg1 <- msc |>
 msc_agg <- msc |> 
   mutate(
     npp_leaf = npp_leaf + npp_seed,
-    resp = rleaf + rwood + rroot + rgrow + dclabl
+    resp = rleaf + rwood + rroot + rgrow
   ) |> 
   summarise(
     gpp = sum(gpp),
     `Leaf production` = sum(npp_leaf),
     `Root production` = sum(npp_root),
     Exudates = sum(rcex),
+    `Labile turnover` = sum(dclabl),
     Respiration = sum(resp)
   )
 
@@ -813,7 +830,7 @@ tmp <- msc_agg |>
   )
 
 gg2 <- tmp |> 
-  mutate(name = factor(name, levels = rev(c("Leaf production", "Root production", "Exudates", "Respiration")))) |> 
+  mutate(name = factor(name, levels = rev(c("Leaf production", "Root production", "Exudates", "Labile turnover", "Respiration")))) |> 
   ggplot() +
   geom_bar(
     aes(x = category, y = value, fill = name), 
@@ -827,6 +844,7 @@ gg2 <- tmp |>
       "Leaf production" = "#009E73",
       "Root production" = "#E69F00",
       "Exudates" = "#CC79A7",
+      "Labile turnover" = "#0072B2",
       "Respiration" = "#56B4E9"
     )
   ) +
@@ -842,6 +860,127 @@ plot_grid(
   gg2, 
   rel_widths = c(1, 0.5),
   labels = c("a", "b")
+)
+
+ggsave(
+  here::here("fig/cbalance_allocation.pdf"),
+  width = 9, height = 3
+)
+
+### N allocation -----------------
+# for mean seasonal cycle
+gg1 <- msc |> 
+  ggplot() +
+  geom_ribbon(
+    aes(
+      date, 
+      ymin = 0,
+      ymax = dnleaf,
+      fill = "Leaf production"
+    )
+  ) +
+  geom_ribbon(
+    aes(
+      date, 
+      ymin = dnleaf,
+      ymax = dnleaf + dnroot,
+      fill = "Root production"
+    )
+  ) +
+  geom_ribbon(
+    aes(
+      date, 
+      ymin = dnleaf + dnroot,
+      ymax = dnleaf + dnroot + dnlabl,
+      fill = "Labile turnover"
+    )
+  ) +
+  geom_line(
+    aes(
+      date, 
+      nup + nresorb,
+      color = "N uptake \n+ resorption")
+  ) +
+  scale_x_date(
+    date_breaks = "1 month", 
+    date_labels = "%b",
+    expand = c(0, 0)
+  ) +
+  khroma::scale_color_okabeito(name = "") +
+  scale_fill_manual(
+    name = "",
+    values = c(
+      "Leaf production" = "#009E73",
+      "Root production" = "#E69F00",
+      "Labile turnover" = "#0072B2"
+    )  
+  ) +
+  theme_classic() +
+  labs(
+    x = "",
+    y = expression(paste("N flux (gC m"^-2, " d"^-1, ")"))
+  ) +
+  scale_y_continuous(expand = c(0, 0))
+
+msc_agg <- msc |> 
+  summarise(
+    nup = sum(nup),
+    nresorb = sum(nresorb),
+    `Leaf production` = sum(dnleaf),
+    `Labile turnover` = sum(dnlabl),
+    `Root production` = sum(dnroot)
+  )
+
+tmp <- msc_agg |> 
+  dplyr::select(-nup, -nresorb) |> 
+  pivot_longer(cols = everything()) |> 
+  mutate(category = "Sinks") |> 
+  bind_rows(
+    msc_agg |> 
+      dplyr::select(Uptake = nup, Resorption = nresorb) |> 
+      pivot_longer(cols = everything()) |> 
+      mutate(category = "Sources")
+  )
+
+gg2 <- tmp |> 
+  mutate(name = factor(
+    name, 
+    levels = rev(c("Leaf production", "Root production", "Labile turnover", "Uptake", "Resorption"))
+    )) |> 
+  ggplot() +
+  geom_bar(
+    aes(x = category, y = value, fill = name), 
+    stat = "identity",
+    position = "stack"
+  ) +
+  theme_classic() +
+  scale_fill_manual(
+    name = "",
+    values = c(
+      "Leaf production" = "#009E73",
+      "Root production" = "#E69F00",
+      "Labile turnover" = "#0072B2",
+      "Uptake" = "#CC79A7",
+      "Resorption" = "#D55E00"
+    )
+  ) +
+  labs(
+    x = "",
+    y = expression(paste("Cumulative N flux (gC m"^-2, "yr"^-1, ")"))
+  ) + 
+  # theme(legend.position="none") +
+  scale_y_continuous(expand = c(0, 0))
+
+plot_grid(
+  gg1, 
+  gg2, 
+  rel_widths = c(1, 0.6),
+  labels = c("a", "b")
+)
+
+ggsave(
+  here::here("fig/nbalance_allocation.pdf"),
+  width = 9, height = 3
 )
 
 ### Annual total N budget -----------------

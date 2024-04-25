@@ -70,7 +70,6 @@ contains
       tile_fluxes(lu)%plant(pft)%dnup_pas = 0.0
       tile_fluxes(lu)%plant(pft)%dnup_act = dnup           
       tile_fluxes(lu)%plant(pft)%dnup_fix = 0.0  
-      tile_fluxes(lu)%plant(pft)%dnup_ret = 0.0
 
       !--------------------------------------------------------------------------
       ! N acquisition to labile pool

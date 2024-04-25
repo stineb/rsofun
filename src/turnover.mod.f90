@@ -77,7 +77,7 @@ contains
       if (verbose) cbal1 = tile(lu)%plant(pft)%pleaf%c%c12 + tile(lu)%soil%plitt_af%c%c12
       if (verbose) nbal1 = tile(lu)%plant(pft)%plabl%n%n14 + tile(lu)%plant(pft)%pleaf%n%n14 + tile(lu)%soil%plitt_af%n%n14
       !--------------------------------------------------------------
-      if ( dleaf > 0.0 .and. tile(lu)%plant(pft)%pleaf%c%c12 > 0.0 ) call turnover_leaf( dleaf, tile(lu), pft )
+      if ( dleaf > 0.0 .and. tile(lu)%plant(pft)%pleaf%c%c12 > 0.0 ) call turnover_leaf( dleaf, tile(lu), tile_fluxes(lu), pft )
       !--------------------------------------------------------------
       if (verbose) print*, '              ==> returned: '
       if (verbose) print*, '              pleaf = ', tile(lu)%plant(pft)%pleaf
@@ -102,7 +102,7 @@ contains
       if (verbose) cbal1 = tile(lu)%plant(pft)%proot%c%c12 + tile(lu)%soil%plitt_bg%c%c12
       if (verbose) nbal1 = tile(lu)%plant(pft)%plabl%n%n14 + tile(lu)%plant(pft)%proot%n%n14 + tile(lu)%soil%plitt_bg%n%n14
       !--------------------------------------------------------------
-      if ( droot > 0.0 .and. tile(lu)%plant(pft)%proot%c%c12 > 0.0  ) call turnover_root( droot, tile(lu), pft )
+      if ( droot > 0.0 .and. tile(lu)%plant(pft)%proot%c%c12 > 0.0  ) call turnover_root( droot, tile(lu), tile_fluxes(lu), pft )
       !--------------------------------------------------------------
       if (verbose) print*, '              ==> returned: '
       if (verbose) print*, '              proot = ', tile(lu)%plant(pft)%proot
@@ -198,18 +198,20 @@ contains
   end subroutine turnover
 
 
-  subroutine turnover_leaf( dleaf, tile, pft )
+  subroutine turnover_leaf( dleaf, tile, tile_fluxes, pft )
     !//////////////////////////////////////////////////////////////////
     ! Execute turnover of fraction dleaf for leaf pool
     !------------------------------------------------------------------
     ! arguments
     real, intent(in) :: dleaf     ! fraction decaying
     type( tile_type ), intent(inout) :: tile
+    type( tile_fluxes_type ), intent(inout) :: tile_fluxes
     integer, intent(in) :: pft
 
     ! local variables
-    type(orgpool) :: lm_turn
-    type(orgpool) :: lm_init
+    type(orgpool)  :: lm_turn
+    type(orgpool)  :: lm_init
+    type(nitrogen) :: nres
 
     real :: nleaf
     real :: cleaf
@@ -311,7 +313,9 @@ contains
     call cmv( lm_turn%c, lm_turn%c, tile%soil%plitt_af%c, scale = real(tile%plant(pft)%nind) )
 
     ! resorb fraction of N
-    call nmv( nfrac( params_plant%f_nretain, lm_turn%n ), lm_turn%n, tile%plant(pft)%plabl%n )
+    nres = nfrac( params_plant%f_nretain, lm_turn%n )
+    tile_fluxes%plant(pft)%dnup_res = tile_fluxes%plant(pft)%dnup_res + nres%n14
+    call nmv( nres, lm_turn%n, tile%plant(pft)%plabl%n )
 
     ! rest goes to litter
     ! call nmvRec( lm_turn%n, lm_turn%n, tile%soil%plitt_af%n, outaNveg2lit(pft,jpngr), scale = real(tile%plant(pft)%nind) )
@@ -320,17 +324,19 @@ contains
   end subroutine turnover_leaf
 
 
-  subroutine turnover_root( droot, tile, pft )
+  subroutine turnover_root( droot, tile, tile_fluxes, pft )
     !//////////////////////////////////////////////////////////////////
     ! Execute turnover of fraction droot for root pool
     !------------------------------------------------------------------
     ! arguments
     real, intent(in)    :: droot
     type( tile_type ), intent(inout)  :: tile
+    type( tile_fluxes_type ), intent(inout) :: tile_fluxes
     integer, intent(in) :: pft
 
     ! local variables
     type(orgpool) :: rm_turn
+    type(nitrogen) :: nres
 
     ! determine absolute turnover
     rm_turn = orgfrac( droot, tile%plant(pft)%proot ) ! root turnover
@@ -343,7 +349,9 @@ contains
     call cmv( rm_turn%c, rm_turn%c, tile%soil%plitt_bg%c, scale = real(tile%plant(pft)%nind) )
 
     ! retain fraction of N
-    call nmv( nfrac( params_plant%f_nretain, rm_turn%n ), rm_turn%n, tile%plant(pft)%plabl%n )
+    nres = nfrac( params_plant%f_nretain, rm_turn%n )
+    tile_fluxes%plant(pft)%dnup_res = tile_fluxes%plant(pft)%dnup_res + nres%n14
+    call nmv( nres, rm_turn%n, tile%plant(pft)%plabl%n )
 
     ! rest goes to litter
     ! call nmvRec( rm_turn%n, rm_turn%n, tile%soil%plitt_bg%n, outaNveg2lit(pft,jpngr), scale = real(tile%plant(pft)%nind) )
@@ -424,8 +432,6 @@ contains
 
     ! labile turnover to be recorded for output
     tile_fluxes%plant(pft)%dlabl = lb_turn
-
-    print*,'turnover_labl: tile_fluxes%plant(pft)%dlabl =', tile_fluxes%plant(pft)%dlabl
 
     ! reduce labile mass
     call orgsub( lb_turn, tile%plant(pft)%plabl )
