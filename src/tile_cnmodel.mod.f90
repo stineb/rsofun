@@ -284,7 +284,7 @@ contains
     !-----------------------------------------------------------------------------
     ! open files for experimental output
     !-----------------------------------------------------------------------------
-    prefix = "./out/out_rsofun"
+    prefix = "./out_rsofun"
 
     filnam = trim(prefix)//'.a.csoil.txt'
     open(unit = 101, file = filnam, err = 999, status = 'unknown')
