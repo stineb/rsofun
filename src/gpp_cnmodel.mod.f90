@@ -194,6 +194,9 @@ contains
                                       params_gpp%soilm_betao, &
                                       params_pft_plant(1)%grass )
 
+      ! xxx debug
+      soilmstress = 1.0
+
       !----------------------------------------------------------------
       ! GPP
       ! This still does a linear scaling of daily GPP - knowingly wrong
