@@ -32,7 +32,7 @@ if(!require(remotes)){install.packages("remotes")}
 remotes::install_github("geco-bern/rsofun")
 library("rsofun")
 ```
-
+ 
 **NOTE:** Installing from GitHub requires compilation of Fortran and C source code contained in {rsofun}. To enable compiling source code, install [Rtools](https://cran.r-project.org/bin/windows/Rtools/) on Windows, or [Xcode](https://developer.apple.com/xcode/) and the [GNU Fortran compiler on Mac](https://github.com/fxcoudert/gfortran-for-macOS) (see also 'Mandatory tools' [here](https://mac.r-project.org/tools/)). On Linux, the gfortran compiler is usually installed already.
 
 
