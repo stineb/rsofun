@@ -90,7 +90,7 @@ computes the RMSE for the biomee model fitting target variables
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">cost_rmse_biomee</span><span class="op">(</span><span class="va">par</span>, <span class="va">obs</span>, <span class="va">drivers</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">cost_rmse_biomee</span><span class="op">(</span><span class="va">par</span>, <span class="va">obs</span>, <span class="va">drivers</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -109,6 +109,12 @@ for example.</p></dd>
 
 <dt id="arg-drivers">drivers<a class="anchor" aria-label="anchor" href="#arg-drivers"></a></dt>
 <dd><p>A nested data frame of driver data, for example <code>biomee_gs_leuning_drivers</code>.</p></dd>
+
+
+<dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
+<dd><p>A logical specifying whether to print parameter and cost (RMSE)
+values during each iteration of the calibration as message. Defaults to
+<code>FALSE</code></p></dd>
 
 </dl></div>
     <div id="value">
@@ -133,7 +139,7 @@ simulated values used to compute the RMSE.</p>
 <span class="r-in"><span> obs <span class="op">=</span> <span class="va">biomee_validation</span>,</span></span>
 <span class="r-in"><span> drivers <span class="op">=</span> <span class="va">biomee_gs_leuning_drivers</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 2.785403e+50</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0.3303412</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

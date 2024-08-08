@@ -177,7 +177,8 @@ should take, i.e. the parameters that aren’t calibrated (via argument
 <span>    tau_acclim         <span class="op">=</span> <span class="fl">30.0</span>,</span>
 <span>    kc_jmax            <span class="op">=</span> <span class="fl">0.41</span></span>
 <span>  <span class="op">)</span>,</span>
-<span>  targets <span class="op">=</span> <span class="st">"gpp"</span>           <span class="co"># define target variable GPP</span></span>
+<span>  targets <span class="op">=</span> <span class="st">"gpp"</span>,           <span class="co"># define target variable GPP</span></span>
+<span>  verbose <span class="op">=</span> <span class="cn">FALSE</span>            <span class="co"># set to TRUE to print parameter and cost values during each iteration of the calibration</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>The output of <code><a href="../reference/calib_sofun.html">calib_sofun()</a></code> is a list containing the
 calibrated parameter values and the raw optimization output from the
