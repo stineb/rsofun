@@ -124,6 +124,8 @@ contains
     real, parameter :: f_seed = 0.0
     real, parameter :: par_resv = 0.1   ! scales reserves pool (controlling risk avoidance)
     real, parameter :: par_labl = 0.1   ! scales labile pool (controlling risk avoidance)
+    real, parameter :: k_decay_palcb = 0.1
+    type( orgpool ) :: dproot
     real :: c_labl_target     ! target size of labile pool (g C m-2)
     real :: c_resv_target     ! target size of reserves pool (g C m-2)
     real :: f_resv_to_labl    ! net C flux from reserves to labile pool (g C m-2 tstep-1)
@@ -137,7 +139,6 @@ contains
 
     ! xxx debug
     real :: tmp
-    real :: frac_leaf_test
 
     ! xxx verbose
     logical, parameter :: verbose = .true.
@@ -282,21 +283,35 @@ contains
 
           !-------------------------------------------------------------------
           ! ROOT ALLOCATION
+          ! nfix: Re-interpreted as belowground C allocation. Allocated to a 
+          ! temporary pool that is consumed by either root growth or by C 
+          ! spent for N fixation.
           !-------------------------------------------------------------------
           if (dcroot > 0.0) then
 
+            ! first, allocate to temporary pool (palcb) which supplies root growth or N fixation
+            call orgmv( &
+              orgpool(carbon = dcroot, nitrogen = dnroot), 
+              tile(lu)%plant(pft)%plabl, 
+              tile(lu)%plant(pft)%palcb
+              )
+            
+            ! second, construct roots, drawing from temporary pool (palcb)
+            dproot = orgfrac(k_decay_palcb, tile(lu)%plant(pft)%palcb)
+
             call allocate_root( &
               pft, &
-              dcroot, &
-              dnroot, &
+              dproot%c%c12, &
+              dproot%n%n14, &
               tile(lu)%plant(pft)%proot%c%c12, &
               tile(lu)%plant(pft)%proot%n%n14, &
-              tile(lu)%plant(pft)%plabl%c%c12, &
-              tile(lu)%plant(pft)%plabl%n%n14, &
+              tile(lu)%plant(pft)%palcb%c%c12, &
+              tile(lu)%plant(pft)%palcb%n%n14, &
               tile_fluxes(lu)%plant(pft)%drgrow, &
               myinterface%steering%closed_nbal, &
               tile_fluxes(lu)%plant(pft)%dnup_fix &
               )
+
 
             !-------------------------------------------------------------------  
             ! If labile N gets negative, account gap as N fixation
@@ -339,7 +354,7 @@ contains
         r_rex_vec(lu,pft,:) = tile_fluxes(lu)%plant(pft)%drroot &
                               + tile_fluxes(lu)%plant(pft)%drsapw &
                               + tile_fluxes(lu)%plant(pft)%dcex
-        n_acq_vec(lu,pft,:) = tile_fluxes(lu)%plant(pft)%dnup%n14
+        n_acq_vec(lu,pft,:) = tile_fluxes(lu)%plant(pft)%dnup%n14 + tile_fluxes(lu)%plant(pft)%dnup_fix%n14
         c_a_l_vec(lu,pft,:) = dcleaf
         c_a_r_vec(lu,pft,:) = dcroot
         c_a_s_vec(lu,pft,:) = dcseed

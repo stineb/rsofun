@@ -125,6 +125,7 @@ module md_plant_cnmodel
     ! pools
     type(orgpool) :: pleaf     ! leaf biomass
     type(orgpool) :: proot     ! root biomass
+    type(orgpool) :: palcb     ! belowground allocation pool, consumed by root growth or N fixation
     type(orgpool) :: pwood     ! woody biomass
     type(orgpool) :: plabl     ! labile pool
     type(orgpool) :: presv     ! reserves pool
@@ -160,8 +161,6 @@ module md_plant_cnmodel
     type(carbon)   :: dnpp     ! daily net primary production (gpp-ra, npp=bp+cex) [gC/m2/d]
     type(nitrogen) :: dnup     ! daily N uptake [gN/m2/d]
 
-    real :: dnup_pas          ! daily N uptake by passsive uptake (transpiration) [gN/m2/d]
-    real :: dnup_act          ! daily N uptake by active uptake [gN/m2/d]
     real :: dnup_fix          ! daily N uptake by plant symbiotic N fixation [gN/m2/d]
     real :: dnup_res          ! daily N resorption [gN/m2/d]
 
@@ -712,6 +711,7 @@ contains
       call orginit( plant(pft)%plabl )
       call orginit( plant(pft)%pseed )
       call orginit( plant(pft)%presv )
+      call orginit( plant(pft)%palcb )
       call init_pheno(plant(pft)%pheno )
       call init_pheno_ann(plant(pft)%pheno_ann(:))
     end do
