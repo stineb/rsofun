@@ -57,69 +57,126 @@ contains
     real :: fno3
     real :: dnup
 
+    !-----------------------------------------------------------------
+    ! Get total inorganic N. N uptake is assumed to deplete NO3 and NH4
+    ! in proportion to their relative shares.
+    !-----------------------------------------------------------------
+    n0 = nh4 + no3
+    
+    ! if (n0>0.0) then
+    fno3 = no3 / n0
 
     pftloop: do pft = 1, npft
 
       lu = params_pft_plant(pft)%lu_category
 
-      if ( tile_fluxes(lu)%plant(pft)%dcex > 0.0 ) then
+      if (params_pft_plant(pft)%nfixer) then
+        !-----------------------------------------------------------------
+        ! Get efficiency of BNF in gN/gC as a function of soil temperature
+        !-----------------------------------------------------------------
+        eff_bnf = calc_eff_fix( tile(lu)%soil%phy%temp )
 
-        if (params_pft_plant(pft)%nfixer) then
+        !-----------------------------------------------------------------
+        ! Get efficiency of root uptake in gN/gC
+        ! eff_nup = dNup / dCroot
+        ! Nup = V * Croot / (k + Croot)
+        ! dNup / dCroot = V * k / (k + Croot)^2
+        !-----------------------------------------------------------------
+        eff_nup = calc_vn( tile(lu)%soil%pnh4%n14 + tile(lu)%soil%pno3%n14 ) * params_nuptake%kc / (params_nuptake%kc + tile(lu)%plant(pft)%proot%c%c12)**2
+
+        !-----------------------------------------------------------------
+        ! Get amount of belowground allocatable C (if not consumed by BNF,
+        ! it will be allocate to root growth).
+        !-----------------------------------------------------------------
+
+
+
+        if (eff_bnf > eff_nup) then
           !-----------------------------------------------------------------
-          ! Get efficiency of BNF in gN/gC as a function of soil temperature
+          ! N uptake via BNF
           !-----------------------------------------------------------------
-          eff_bnf = calc_eff_fix( tile(lu)%soil%phy%temp )
+
+        !-----------------------------------------------------------------
+        ! Find amount of root uptake (~Cex) for which eff_nup = eff_bnf
+        ! eff_up = dNup / dCex
+        ! Nup = V * Cex / (k + Cex); Cex = a * Croot
+        ! dNup / dCex = V * k / (k + Cex)^2
+        ! dNup / dCex = eff_bnf
+        ! => Cex = sqrt(k * V / eff_bnf) - k
+        !-----------------------------------------------------------------
+        cexu_up = sqrt(params_nuptake%kc * calc_vn( tile(lu)%soil%pnh4%n14 + tile(lu)%soil%pno3%n14 ) / eff_bnf) - params_nuptake%kc
+
+        if (cexu_up < tile_fluxes(lu)%plant(pft)%dcex) then
+          !-----------------------------------------------------------------
+          ! Remaining Cex is consumed by N fixing processes
+          !-----------------------------------------------------------------
+          cexu_bnf = cexu - cexu_up
 
           !-----------------------------------------------------------------
-          ! Find amount of active uptake (~Cex) for which eff_nup = eff_bnf
-          ! eff_act = dNup_act / dCex
-          ! Nup_act = N0 * ( 1.0 - exp( -K * Cex ) )
-          ! dNup_act / dCex = K * exp( -K * Cex)
-          ! dNup_act / dCex = eff_bnf
-          ! ==> Cex = - 1/K * ln( bnf_eff/K )
+          ! N uptake via BNF
           !-----------------------------------------------------------------
-          cexu_act = -1.0 / params_nuptake%eff_nup * log( eff_bnf / ( n0 * params_nuptake%eff_nup ) )
+          out_calc_dnup%fix = cexu_bnf * eff_bnf
+
+          !-----------------------------------------------------------------
+          ! N uptake via active uptake
+          !-----------------------------------------------------------------
+          out_calc_dnup%act_no3 = fno3         * n0 * ( 1.0 - exp( - params_nuptake%eff_nup * cexu_up ) )
+          out_calc_dnup%act_nh4 = (1.0 - fno3) * n0 * ( 1.0 - exp( - params_nuptake%eff_nup * cexu_up ) )
 
         else
 
-        !//////////////////////////////////////////////////////////////////////////
-        ! N uptake of NO3 and NH4 in proportion to their relative pool sizes.
-        !--------------------------------------------------------------------------
-        fno3 = tile(lu)%soil%pno3%n14 / (tile(lu)%soil%pnh4%n14 + tile(lu)%soil%pno3%n14)
-        dnup  = calc_dnup( tile(lu)%plant(pft)%proot%c%c12, &
-                           tile(lu)%soil%pnh4%n14 + tile(lu)%soil%pno3%n14 &
-                           )
+          out_calc_dnup%fix     = 0.0
+          out_calc_dnup%act_no3 = fno3         * n0 * ( 1.0 - exp( - params_nuptake%eff_nup * cexu ) )
+          out_calc_dnup%act_nh4 = (1.0 - fno3) * n0 * ( 1.0 - exp( - params_nuptake%eff_nup * cexu ) )
 
-        ! determine root N uptake efficiency
-        eff_rootuptake = dnup / (&
+        end if
 
-          ! root construction cost per day
-          (1.0 / params_plant%growtheff) * tile(lu)%plant(pft)%proot%c%c12 * params_pft_plant(pft)%k_decay_root & 
 
-          ! root respiration cost per day
-          + calc_resp_maint( tile(lu)%plant(pft)%proot%c%c12, &
-                              params_plant%r_root, &
-                              climate%dtemp &
-                              ) &
-          )
 
-        ! determine N fixation efficiency
-        eff_nfix = dnfix / cost_nfix
 
-        if (eff_nfix > eff_rootuptake){
 
-          ! determine "cross-over point" - how much C to be "spent" for root uptake, the rest is spent on N fixation
-          dnup = ...
-          tile_fluxes(lu)%plant(pft)%dnup_fix = ...
 
-          ! remove C spent for N fixation from temporary pool palcb
-        }
 
-        ! Update
-        tile(lu)%soil%pno3%n14 = tile(lu)%soil%pno3%n14 - dnup * fno3
-        tile(lu)%soil%pnh4%n14 = tile(lu)%soil%pnh4%n14 - dnup * (1.0 - fno3)
 
-      end if
+
+      else
+
+      !//////////////////////////////////////////////////////////////////////////
+      ! N uptake of NO3 and NH4 in proportion to their relative pool sizes.
+      !--------------------------------------------------------------------------
+      fno3 = tile(lu)%soil%pno3%n14 / (tile(lu)%soil%pnh4%n14 + tile(lu)%soil%pno3%n14)
+      dnup  = calc_dnup( tile(lu)%plant(pft)%proot%c%c12, &
+                         tile(lu)%soil%pnh4%n14 + tile(lu)%soil%pno3%n14 &
+                         )
+
+      ! determine root N uptake efficiency
+      eff_rootuptake = dnup / (&
+
+        ! root construction cost per day
+        (1.0 / params_plant%growtheff) * tile(lu)%plant(pft)%proot%c%c12 * params_pft_plant(pft)%k_decay_root & 
+
+        ! root respiration cost per day
+        + calc_resp_maint( tile(lu)%plant(pft)%proot%c%c12, &
+                            params_plant%r_root, &
+                            climate%dtemp &
+                            ) &
+        )
+
+      ! determine N fixation efficiency
+      eff_nfix = dnfix / cost_nfix
+
+      if (eff_nfix > eff_rootuptake){
+
+        ! determine "cross-over point" - how much C to be "spent" for root uptake, the rest is spent on N fixation
+        dnup = ...
+        tile_fluxes(lu)%plant(pft)%dnup_fix = ...
+
+        ! remove C spent for N fixation from temporary pool palcb
+      }
+
+      ! Update
+      tile(lu)%soil%pno3%n14 = tile(lu)%soil%pno3%n14 - dnup * fno3
+      tile(lu)%soil%pnh4%n14 = tile(lu)%soil%pnh4%n14 - dnup * (1.0 - fno3)
 
       !--------------------------------------------------------------------------
       ! Update N-uptake of this PFT. N-retranslocation is not considered

@@ -282,23 +282,27 @@ contains
           end if
 
           !-------------------------------------------------------------------
-          ! ROOT ALLOCATION
+          ! BELOWGROUND ALLOCATION
           ! nfix: Re-interpreted as belowground C allocation. Allocated to a 
           ! temporary pool that is consumed by either root growth or by C 
           ! spent for N fixation.
           !-------------------------------------------------------------------
           if (dcroot > 0.0) then
 
-            ! first, allocate to temporary pool (palcb) which supplies root growth or N fixation
+            ! Allocate to temporary pool (palcb) which supplies root growth or N fixation.
             call orgmv( &
               orgpool(carbon = dcroot, nitrogen = dnroot), 
               tile(lu)%plant(pft)%plabl, 
               tile(lu)%plant(pft)%palcb
               )
             
-            ! second, construct roots, drawing from temporary pool (palcb)
+            ! Get C (and N) available for root construction (or BNF if PFT is capable of BNF)
             dproot = orgfrac(k_decay_palcb, tile(lu)%plant(pft)%palcb)
 
+            ! check if belowground C is to be spent for root construction or biological N fixation
+            ! depending by respective N acquisition efficiencies
+
+            ! second, construct roots, drawing from temporary pool (palcb)
             call allocate_root( &
               pft, &
               dproot%c%c12, &
