@@ -12,7 +12,7 @@ module md_allocation_cnmodel
   implicit none
 
   private 
-  public allocation_daily, getpar_modl_allocation
+  public allocation, getpar_modl_allocation
 
   !----------------------------------------------------------------
   ! Module-specific, private variables
@@ -51,7 +51,7 @@ module md_allocation_cnmodel
 
 contains
 
-  subroutine allocation_daily( tile, tile_fluxes, climate, init )
+  subroutine allocation( tile, tile_fluxes, climate, init )
     !//////////////////////////////////////////////////////////////////
     ! Finds optimal shoot:root growth ratio to balance C:N stoichiometry
     ! of a grass (no wood allocation).
@@ -332,7 +332,7 @@ contains
 
         else
 
-          stop 'allocation_daily not implemented for trees'
+          stop 'allocation not implemented for trees'
 
         end if
 
@@ -527,7 +527,7 @@ contains
 
     end do pftloop
 
-  end subroutine allocation_daily
+  end subroutine allocation
 
 
   subroutine allocate_leaf( pft, mydcleaf, cleaf, nleaf, clabl, nlabl, rgrow, actnv_unitfapar, lai, mydnleaf, closed_nbal, nfix )

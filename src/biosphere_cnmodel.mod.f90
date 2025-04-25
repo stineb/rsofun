@@ -21,7 +21,7 @@ module md_biosphere_cnmodel
   use md_landuse, only: landuse
   use md_littersom, only: littersom, getpar_modl_littersom
   use md_ntransform_simpl, only: ntransform, getpar_modl_ntransform
-  use md_allocation_cnmodel, only: allocation_daily, getpar_modl_allocation
+  use md_allocation_cnmodel, only: allocation, getpar_modl_allocation
 
   implicit none
 
@@ -436,7 +436,7 @@ contains
                            + tile(1)%plant(1)%pseed%n%n14 &
                            - tile_fluxes(1)%plant(1)%dnup%n14
         !----------------------------------------------------------------
-        call allocation_daily(  tile(:), &
+        call allocation(  tile(:), &
                                 tile_fluxes(:),&
                                 myinterface%climate(doy), &
                                 init_daily &

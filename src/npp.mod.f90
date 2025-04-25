@@ -106,7 +106,7 @@ contains
       tile_fluxes(lu)%plant(pft)%drroot = frac_avl * &
                                             calc_resp_maint(  tile(lu)%plant(pft)%proot%c%c12, &
                                                               params_plant%r_root, &
-                                                              climate%dtemp &
+                                                              tile(lu)%soil%phy%temp &
                                                               )
       if (params_pft_plant(pft)%tree) then
         tile_fluxes(lu)%plant(pft)%drsapw = frac_avl * &

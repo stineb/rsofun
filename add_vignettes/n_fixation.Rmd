@@ -1,0 +1,46 @@
+---
+title: "N fixation"
+author: "Beni Stocker"
+date: "2025-04-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Calculate N fixation efficiency (dNfix/dCex) as a function of 
+soil temperature. The functional form is chosen to be equal to
+the (fitted) relationship between soil temperature and nitro-
+genase activity derived by Houlton et al. (2008), Nature. The 
+maximum efficiency is 0.21 gN/gC, which corresponds to the 
+inverse of the "minimum cost of N-fixation" of 4.8 gC/gN given 
+Gutschik (1981). At higher and lower temperature, efficiency de-
+clines to zero.
+
+```{r}
+calc_eff_nfix <- function(soiltemp, par, norm = 1.25){
+  out_eff_fix <- 1.0 / par[["minimumcostfix"]] * norm * 
+      exp( par[["a_param_fix"]] + 
+           par[["b_param_fix"]] * soiltemp * ( 1.0 - 0.5 * soiltemp / par[["fixoptimum"]] ) )
+
+	return( out_eff_fix )	
+}
+
+par <- list(
+  minimumcostfix = 4.8,
+  fixoptimum = 25.15,
+  a_param_fix = -3.62,
+  b_param_fix = 0.27
+)
+```
+
+```{r}
+ggplot() +
+  geom_function(fun = calc_eff_nfix, args = list(par = par), xlim = c(0, 50)) + 
+  labs(
+    x = "Soil temperature (°C)",
+    y = "N fixation efficiency (gN/gC)"
+  )
+```
+

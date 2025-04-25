@@ -204,7 +204,7 @@ contains
     real, intent(in), optional :: scale ! scale source ('from') to be added to destination ('to')
 
     if ( present( scale ) ) then
-      call ccp(cfrac(scale,amount),to)
+      call ccp(cfrac(scale, amount), to)
       call csub( amount, from )
     else
       call ccp( amount, to)
