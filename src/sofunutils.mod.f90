@@ -82,6 +82,7 @@ contains
       end if
     else
       ! stop 'RUNNING: declare valid method.'
+      runningval = dummy
     end if
 
   end function running
@@ -464,7 +465,7 @@ contains
     real, intent(out) :: a, b
 
     ! local variables
-    integer :: size_x, size_y, i
+    integer :: size_x, size_y
     real    :: sum_x, sum_y, sum_xx, sum_xy
 
     size_x = size(x)

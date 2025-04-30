@@ -192,12 +192,11 @@ module md_tile_cnmodel
     type(orgpool) :: dlabl     ! labile turnover, doesn't appear as NPP, therefore needs to be accounted for separately [gC/m2/d]
 
     type(carbon)   :: dnpp     ! daily net primary production (gpp-ra, npp=bp+cex) [gC/m2/d]
-    type(nitrogen) :: dnup     ! daily N uptake [gN/m2/d]
 
-    real :: dnup_pas          ! daily N uptake by passsive uptake (transpiration) [gN/m2/d]
-    real :: dnup_act          ! daily N uptake by active uptake [gN/m2/d]
-    real :: dnup_fix          ! daily N uptake by plant symbiotic N fixation [gN/m2/d]
-    real :: dnup_res          ! daily N resorption [gN/m2/d]
+    type(nitrogen) :: dnacq          ! daily total acquired N by root uptake and fixation [gN/m2/d]
+    type(nitrogen) :: dnup           ! daily root N uptake [gN/m2/d]
+    type(nitrogen) :: dnfix          ! daily symbiotic N fixation [gN/m2/d]
+    type(nitrogen) :: dnres          ! daily N resorption [gN/m2/d]
 
     real :: vcmax25           ! acclimated Vcmax, normalised to 25 deg C (mol CO2 m-2 s-1)
     real :: jmax25            ! acclimated Jmax, normalised to 25 deg C (mol CO2 m-2 s-1)
@@ -676,7 +675,6 @@ contains
 
     ! local
     integer :: lu, pft
-    real :: tmp
 
     !----------------------------------------------------------------
     ! Initialise all canopy-level quantities that are later summed over plants
@@ -692,10 +690,6 @@ contains
     tile_fluxes(:)%canopy%drsapw = 0.0
     tile_fluxes(:)%canopy%drgrow = 0.0
     tile_fluxes(:)%canopy%dcex = 0.0
-    tile_fluxes(:)%canopy%dnup_pas = 0.0
-    tile_fluxes(:)%canopy%dnup_act = 0.0
-    tile_fluxes(:)%canopy%dnup_fix = 0.0
-    tile_fluxes(:)%canopy%dnup_res = 0.0
     tile_fluxes(:)%canopy%vcmax25 = 0.0
     tile_fluxes(:)%canopy%jmax25 = 0.0
     tile_fluxes(:)%canopy%vcmax = 0.0
@@ -710,7 +704,10 @@ contains
       call orginit( tile_fluxes(lu)%canopy%dlabl )
       call orginit( tile_fluxes(lu)%canopy%dharv )
       call cinit( tile_fluxes(lu)%canopy%dnpp )
+      call ninit( tile_fluxes(lu)%canopy%dnacq )
       call ninit( tile_fluxes(lu)%canopy%dnup )
+      call ninit( tile_fluxes(lu)%canopy%dnfix )
+      call ninit( tile_fluxes(lu)%canopy%dnres )
     end do
 
     ! pools
@@ -759,10 +756,6 @@ contains
       tile_fluxes(lu)%canopy%drsapw = tile_fluxes(lu)%canopy%drsapw + tile_fluxes(lu)%plant(pft)%drsapw
       tile_fluxes(lu)%canopy%drgrow = tile_fluxes(lu)%canopy%drgrow + tile_fluxes(lu)%plant(pft)%drgrow
       tile_fluxes(lu)%canopy%dcex = tile_fluxes(lu)%canopy%dcex + tile_fluxes(lu)%plant(pft)%dcex
-      tile_fluxes(lu)%canopy%dnup_pas = tile_fluxes(lu)%canopy%dnup_pas + tile_fluxes(lu)%plant(pft)%dnup_pas
-      tile_fluxes(lu)%canopy%dnup_act = tile_fluxes(lu)%canopy%dnup_act + tile_fluxes(lu)%plant(pft)%dnup_act
-      tile_fluxes(lu)%canopy%dnup_fix = tile_fluxes(lu)%canopy%dnup_fix + tile_fluxes(lu)%plant(pft)%dnup_fix
-      tile_fluxes(lu)%canopy%dnup_res = tile_fluxes(lu)%canopy%dnup_res + tile_fluxes(lu)%plant(pft)%dnup_res
 
       ! canopy-level quantities as FPC-weighted mean
       tile_fluxes(lu)%canopy%vcmax25 = tile_fluxes(lu)%canopy%vcmax25 + &
@@ -784,7 +777,10 @@ contains
 
       ! derived types canopy-level quantities as sums
       tile_fluxes(lu)%canopy%dnpp  = cplus( tile_fluxes(lu)%canopy%dnpp, tile_fluxes(lu)%plant(pft)%dnpp )
+      tile_fluxes(lu)%canopy%dnacq = nplus( tile_fluxes(lu)%canopy%dnacq, tile_fluxes(lu)%plant(pft)%dnacq )
       tile_fluxes(lu)%canopy%dnup  = nplus( tile_fluxes(lu)%canopy%dnup, tile_fluxes(lu)%plant(pft)%dnup )
+      tile_fluxes(lu)%canopy%dnfix = nplus( tile_fluxes(lu)%canopy%dnfix, tile_fluxes(lu)%plant(pft)%dnfix )
+      tile_fluxes(lu)%canopy%dnres = nplus( tile_fluxes(lu)%canopy%dnres, tile_fluxes(lu)%plant(pft)%dnres )
       tile_fluxes(lu)%canopy%dharv = orgplus( tile_fluxes(lu)%canopy%dharv, tile_fluxes(lu)%plant(pft)%dharv )
       tile_fluxes(lu)%canopy%dlabl = orgplus( tile_fluxes(lu)%canopy%dlabl, tile_fluxes(lu)%plant(pft)%dlabl )
       tile_fluxes(lu)%canopy%npp_leaf = orgplus( tile_fluxes(lu)%canopy%npp_leaf, tile_fluxes(lu)%plant(pft)%npp_leaf )
@@ -896,7 +892,7 @@ contains
     out_biosphere%nsoil    = tile(lu)%soil%psoil_sl%n%n14 + tile(lu)%soil%psoil_fs%n%n14 
     out_biosphere%clitt    = tile(lu)%soil%plitt_af%c%c12 + tile(lu)%soil%plitt_as%c%c12 + tile(lu)%soil%plitt_bg%c%c12
     out_biosphere%nlitt    = tile(lu)%soil%plitt_af%n%n14 + tile(lu)%soil%plitt_as%n%n14 + tile(lu)%soil%plitt_bg%n%n14
-    out_biosphere%nfix     = tile_fluxes(lu)%plant(pft)%dnup_fix
+    out_biosphere%nfix     = tile_fluxes(lu)%plant(pft)%dnfix%n14
     out_biosphere%nup      = tile_fluxes(lu)%plant(pft)%dnup%n14
     out_biosphere%cex      = tile_fluxes(lu)%plant(pft)%dcex
     out_biosphere%netmin   = tile_fluxes(lu)%soil%dnetmin%n14
@@ -930,7 +926,7 @@ contains
     out_biosphere%dnroot   = tile_fluxes(lu)%canopy%npp_root%n%n14   
     out_biosphere%dnwood   = tile_fluxes(lu)%canopy%npp_wood%n%n14   
     out_biosphere%dnseed   = tile_fluxes(lu)%canopy%npp_seed%n%n14   
-    out_biosphere%nresorb  = tile_fluxes(lu)%canopy%dnup_res  
+    out_biosphere%nresorb  = tile_fluxes(lu)%canopy%dnres%n14  
 
     ! for debugging purposes
     out_biosphere%x1       = tile_fluxes(lu)%plant(pft)%debug1
@@ -941,7 +937,7 @@ contains
   end subroutine diag_daily
 
 
-  subroutine diag_annual( tile, tile_fluxes )
+  subroutine diag_annual( tile )
     !////////////////////////////////////////////////////////////////
     ! Annual diagnostics
     ! Write to (experimental) files
@@ -950,7 +946,6 @@ contains
 
     ! arguments
     type(tile_type), dimension(nlu), intent(in) :: tile
-    type(tile_fluxes_type), dimension(nlu), intent(in) :: tile_fluxes
 
     ! local
     integer :: lu, pft

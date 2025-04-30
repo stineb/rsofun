@@ -38,7 +38,6 @@ module md_waterbal_cnmodel
   ! MODULE-SPECIFIC, PRIVATE VARIABLES
   !----------------------------------------------------------------
   real :: dr                           ! distance factor
-  real :: delta                        ! declination angle 
   real :: hs                           ! sunset hour angle
   real :: hn                           ! net radiation cross-over hour angle
   real :: tau                          ! transmittivity (unitless)

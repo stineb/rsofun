@@ -52,17 +52,13 @@ contains
     type(tile_type), dimension(nlu), intent(inout) :: tile
     real, intent(in) :: dtemp    ! daily mean temperature (deg C)
     real, intent(in) :: dtmin    ! daily minimum temperature (deg C)
+    type(tile_fluxes_type), dimension(nlu), intent(inout) :: tile_fluxes
 
     ! local variables
     real, dimension(nlu,npft), save :: dra_save
     logical, save :: firstcall = .true.
-    real :: level_veggrowth
     real :: diff_dra
     integer :: pft, lu
-
-    ! xxx debug
-    type(tile_fluxes_type), dimension(nlu), intent(inout) :: tile_fluxes
-    real, save :: tmp = 0.0
 
     pftloop: do pft=1,npft
       lu = params_pft_plant(pft)%lu_category
@@ -112,38 +108,38 @@ contains
   end subroutine phenology_daily
 
 
-  function calc_level_veggrowth( diff_dra ) result( f_veggrowth )
-    !////////////////////////////////////////////////////////////////
-    ! Calculates a factor (0,1) scaling C allocated to vegetative 
-    ! growth. The remainder is not allocated and represents a "seed
-    ! filling. However, seeds are not treated separately because
-    ! no grass cohorts are modelled. C withheld from allocation
-    ! (kept as seed C) is available from allocation one this factor
-    ! is >0. 
-    !----------------------------------------------------------------
-    ! arguments
-    real, intent(in) :: diff_dra
+  ! function calc_level_veggrowth( diff_dra ) result( f_veggrowth )
+  !   !////////////////////////////////////////////////////////////////
+  !   ! Calculates a factor (0,1) scaling C allocated to vegetative 
+  !   ! growth. The remainder is not allocated and represents a "seed
+  !   ! filling. However, seeds are not treated separately because
+  !   ! no grass cohorts are modelled. C withheld from allocation
+  !   ! (kept as seed C) is available from allocation one this factor
+  !   ! is >0. 
+  !   !----------------------------------------------------------------
+  !   ! arguments
+  !   real, intent(in) :: diff_dra
 
-    ! function return variable
-    real :: f_seed, f_veggrowth
+  !   ! function return variable
+  !   real :: f_seed, f_veggrowth
 
-    ! local variables
-    real, parameter :: par_f_seed = 3000.0
-    real :: diff_dra_norm
+  !   ! local variables
+  !   real, parameter :: par_f_seed = 3000.0
+  !   real :: diff_dra_norm
 
-    ! change in TOA radiation per day, normalised by solar constant (in J m-2 d-1)
-    diff_dra_norm = diff_dra/(kGsc * 24 * 60 * 60)
+  !   ! change in TOA radiation per day, normalised by solar constant (in J m-2 d-1)
+  !   diff_dra_norm = diff_dra/(kGsc * 24 * 60 * 60)
 
-    ! calculate fraction allocated to seeds (1-allocated to vegetative growth)
-    f_seed = 1.0 / (1.0 + exp( par_f_seed * diff_dra_norm ))
-    f_veggrowth = 1.0 - f_seed
+  !   ! calculate fraction allocated to seeds (1-allocated to vegetative growth)
+  !   f_seed = 1.0 / (1.0 + exp( par_f_seed * diff_dra_norm ))
+  !   f_veggrowth = 1.0 - f_seed
 
-    ! ! Only start filling seeds if LAI > 1
-    ! if (tile(lu)%plant(pft)%lai_ind < 1.0) then
-    !   f_veggrowth = 0.0
-    ! end if
+  !   ! ! Only start filling seeds if LAI > 1
+  !   ! if (tile(lu)%plant(pft)%lai_ind < 1.0) then
+  !   !   f_veggrowth = 0.0
+  !   ! end if
 
-  end function calc_level_veggrowth
+  ! end function calc_level_veggrowth
 
 
   subroutine calc_ftemp_kphio_coldhard(tc, tmin, level_hard, gdd, &
@@ -242,8 +238,8 @@ contains
     real, dimension(ndayyear), intent(in) :: dtemp
 
     ! local variables
-    integer :: warmest, coldest, month, midsummer, firstday, d, pft, day, lu
-    real    :: leafon_n, aphen, gdd
+    integer :: warmest, coldest, month, midsummer, firstday, pft, day, lu
+    real    :: gdd
     real, dimension(nmonth)       :: mtemp       ! monthly temperature as a mean of daily values in resp. month
     real, dimension(nmonth), save :: mtemp_pvy   ! monthly temperature as a mean of daily values in resp. month, previous year
     real, dimension(ndayyear)     :: dtemp_int   ! daily temperature as linearly interpolated from monthly temperature

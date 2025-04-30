@@ -16,11 +16,10 @@ module md_turnover
   logical, parameter :: baltest = .false.
   real :: cbal1, cbal2
   real :: nbal1, nbal2
-  type( orgpool ) :: orgtmp, orgtmp2
 
 contains
 
-  subroutine turnover( tile, tile_fluxes, doy )
+  subroutine turnover( tile, tile_fluxes )
     !////////////////////////////////////////////////////////////////
     !  Annual vegetation biomass turnover, called at the end of the
     !  year.
@@ -28,7 +27,6 @@ contains
     ! arguments
     type(tile_type), dimension(nlu), intent(inout) :: tile
     type(tile_fluxes_type), dimension(nlu), intent(inout) :: tile_fluxes
-    integer, intent(in) :: doy
 
     ! local variables
     integer :: pft
@@ -215,8 +213,6 @@ contains
 
     real :: nleaf
     real :: cleaf
-    real :: dlai
-    real :: diff
     integer :: nitr
 
     if (verbose) print*,'                Before leaf turnover:'
@@ -314,7 +310,7 @@ contains
 
     ! resorb fraction of N
     nres = nfrac( params_plant%f_nretain, lm_turn%n )
-    tile_fluxes%plant(pft)%dnup_res = tile_fluxes%plant(pft)%dnup_res + nres%n14
+    tile_fluxes%plant(pft)%dnres%n14 = tile_fluxes%plant(pft)%dnres%n14 + nres%n14
     call nmv( nres, lm_turn%n, tile%plant(pft)%plabl%n )
 
     ! rest goes to litter
@@ -350,7 +346,7 @@ contains
 
     ! retain fraction of N
     nres = nfrac( params_plant%f_nretain, rm_turn%n )
-    tile_fluxes%plant(pft)%dnup_res = tile_fluxes%plant(pft)%dnup_res + nres%n14
+    tile_fluxes%plant(pft)%dnres%n14 = tile_fluxes%plant(pft)%dnres%n14 + nres%n14
     call nmv( nres, rm_turn%n, tile%plant(pft)%plabl%n )
 
     ! rest goes to litter

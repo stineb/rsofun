@@ -6,6 +6,7 @@ module md_nuptake_simpl
   use md_classdefs
   use md_tile_cnmodel
   use md_plant_cnmodel
+  use md_npp, only: calc_resp_maint
 
   implicit none
 
@@ -54,18 +55,12 @@ contains
 
     ! local variables
     integer :: lu, pft
-    real :: fno3
-    real :: dnup
+    real :: fno3, dnup, resp_rate, dcup, eff_nup, eff_nfix, dnacq, dnfix, dcfix
 
     !-----------------------------------------------------------------
     ! Get total inorganic N. N uptake is assumed to deplete NO3 and NH4
     ! in proportion to their relative shares.
     !-----------------------------------------------------------------
-    n0 = nh4 + no3
-    
-    ! if (n0>0.0) then
-    fno3 = no3 / n0
-
     pftloop: do pft = 1, npft
 
       lu = params_pft_plant(pft)%lu_category
@@ -88,7 +83,7 @@ contains
         ! Calculated as the C spent per time step (day) for sustaining the current
         ! root biomass.
         !--------------------------------------------------------------------------
-        resp_rate = calc_resp_maint( 
+        resp_rate = calc_resp_maint( &
           1.0, &
           params_plant%r_root, &
           tile(lu)%soil%phy%temp &
@@ -129,22 +124,29 @@ contains
           end if
 
           !-----------------------------------------------------------------
-          ! add consumed C to root respiration. Don't do anything with N.
+          ! Add consumed C to root respiration and remove from allocatable
+          ! belowground C pool. Leave allocatable belowground N pool untouched.
           !-----------------------------------------------------------------
-          call cmv( &
-            carbon(carbon = dcfix), &
-            tile(lu)%plant(pft)%palcb%c, &
-            tile_fluxes(lu)%plant(pft)%drroot &
-            )
+          tile_fluxes(lu)%plant(pft)%drroot = tile_fluxes(lu)%plant(pft)%drroot + dcfix
+          tile(lu)%plant(pft)%palcb%c%c12 = tile(lu)%plant(pft)%palcb%c%c12 - dcfix
 
         else
           !-----------------------------------------------------------------
-          ! N acquisition only via root uptake (calculated above)
+          ! Is N fixer, but N acquisition only via root uptake
           !-----------------------------------------------------------------
+          dnacq = dnup
           dnfix = 0.0
           dcfix = 0.0
 
         end if  ! (eff_nfix > eff_nup)
+
+      else
+        !-----------------------------------------------------------------
+        ! Is not N fixer, therefore N acquisition only via root uptake
+        !-----------------------------------------------------------------
+        dnacq = dnup
+        dnfix = 0.0
+        dcfix = 0.0
 
       end if  ! (params_pft_plant(pft)%nfixer)
 
@@ -156,15 +158,15 @@ contains
       ! Update N-uptake of this PFT. N-retranslocation is not considered
       ! N-uptake.
       !--------------------------------------------------------------------------
-      ! daily
-      tile_fluxes(lu)%plant(pft)%dnup%n14 = dnup
-      tile_fluxes(lu)%plant(pft)%dnup_fix = dnfix  
+      tile_fluxes(lu)%plant(pft)%dnacq%n14 = dnup + dnfix
+      tile_fluxes(lu)%plant(pft)%dnup%n14  = dnup
+      tile_fluxes(lu)%plant(pft)%dnfix%n14 = dnfix
 
       !--------------------------------------------------------------------------
       ! Total N acquisition (root N uptake plus N fixation) to labile pool
       !--------------------------------------------------------------------------
       call ncp( tile_fluxes(lu)%plant(pft)%dnup, tile(lu)%plant(pft)%plabl%n )
-      call ncp( nitrogen(nitrogen = dnfix), tile(lu)%plant(pft)%plabl%n )
+      call ncp( nitrogen(dnfix), tile(lu)%plant(pft)%plabl%n )
 
     end do pftloop
 

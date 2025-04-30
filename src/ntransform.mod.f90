@@ -3,7 +3,7 @@ module md_ntransform
   ! INORGANIC NITROGEN DYNAMICS MODULE AFTER XURI & PRENTICE 2008
   !----------------------------------------------------------------
   use md_classdefs
-  use md_params_core, only: nlu, maxgrid, ndayyear
+  use md_params_core
   use md_tile_cnmodel
 
   implicit none
@@ -44,8 +44,8 @@ contains
     type(tile_type), dimension(nlu), intent(inout) :: tile
     type(tile_fluxes_type), dimension(nlu), intent(inout) :: tile_fluxes
     type(landuse_type), intent(in) :: landuse
-    real :: aprec         ! annual total precipitation [mm/d] 
-    integer :: doy
+    real, optional :: aprec         ! annual total precipitation [mm/d] 
+    integer, optional :: doy
     
     ! local variables
     real :: dn2                         ! soil N2 emissions [gN/m2/d]
@@ -69,7 +69,6 @@ contains
     real :: fdry                   ! fraction of pools in dry microsites (subject to nitrification)
     
     real :: no3_inc, n2o_inc, no_inc, no2_inc, n2_inc      ! pool increments, temporary variables
-    real :: tmp                                            ! temporary variable
         
     real :: nh4_w, no3_w, no2_w    ! anaerobic pools
     real :: nh4_d, no3_d, no2_d    ! aerobic pools
@@ -91,25 +90,34 @@ contains
 
     !///////////////////////////////////////////////////////////////////////
     ! INITIALIZATION 
-    !-----------------------------------------------------------------------    
-    if ( doy == 1 ) then
-      !///////////////////////////////////////////////////////////////////////
-      ! ANNUAL INITIALIZATION 
-      !-----------------------------------------------------------------------
-      ! Calculate soil PH using empirical relationship with annual precip
-      ! Eq.5, Tab.5, XP08 (ntransform.cpp:65) (c++:aprec in mm/yr; F: mm/yr)
-      !------------------------------------------------------------------
-      ph_soil = 3810.0 / (762.0 + aprec) + 3.8
+    !-----------------------------------------------------------------------
+    if (present(aprec) .and. present(doy)) then
+      if ( doy == 1 ) then
+        !///////////////////////////////////////////////////////////////////////
+        ! ANNUAL INITIALIZATION 
+        !-----------------------------------------------------------------------
+        ! Calculate soil PH using empirical relationship with annual precip
+        ! Eq.5, Tab.5, XP08 (ntransform.cpp:65) (c++:aprec in mm/yr; F: mm/yr)
+        !------------------------------------------------------------------
+        ph_soil = 3810.0 / (762.0 + aprec) + 3.8
 
-      ! Deprotonation of NH4 to NH3 depends on soil pH
-      !------------------------------------------------------------------
-      if (ph_soil > 6.0) then
-        nh3max = 1.0
-      else
-        nh3max = 0.00001
-      endif
-      
-    endif
+        ! Deprotonation of NH4 to NH3 depends on soil pH
+        !------------------------------------------------------------------
+        if (ph_soil > 6.0) then
+          nh3max = 1.0
+        else
+          nh3max = 0.00001
+        endif
+        
+      end if
+
+    else
+
+      doy = dummy
+      aprec = dummy
+      nh3max = 0.0
+
+    end if
           
     ! LOOP OVER GRIDCELL LAND UNITS
     luloop: do lu=1,nlu
@@ -230,17 +238,17 @@ contains
       ! if N loss is defined w.r.t. reduction in NH4 and NO3 pools, then this is the correct formulation:
       tile_fluxes(lu)%soil%dnloss = tile_fluxes(lu)%soil%dnloss + n2o_inc + no_inc
 
-      ! ! xxx debug
-      ! if (baltest) no3bal_1 = no3_w + no3_d - no3_inc + tile_fluxes(lu)%soil%dnleach + no_inc + n2o_inc
-      ! if (baltest) nh4bal_1 = nh4_w + nh4_d + dnitr + dnvol
+      ! xxx debug
+      if (baltest) no3bal_1 = no3_w + no3_d - no3_inc + tile_fluxes(lu)%soil%dnleach + no_inc + n2o_inc
+      if (baltest) nh4bal_1 = nh4_w + nh4_d + dnitr + dnvol
 
-      ! if (baltest) nbal1 = no3bal_1 - no3bal_0
-      ! if (baltest) nbal2 = nh4bal_1 - nh4bal_0
-      ! if (verbose) print*,'              --- preliminary balance after nitrification '
-      ! if (verbose) print*,'              ', nbal1
-      ! if (verbose) print*,'              ', nbal2
-      ! if (baltest .and. abs(nbal1) > eps) stop 'balance 1 not satisfied'
-      ! if (baltest .and. abs(nbal2) > eps) stop 'balance 2 not satisfied'
+      if (baltest) nbal1 = no3bal_1 - no3bal_0
+      if (baltest) nbal2 = nh4bal_1 - nh4bal_0
+      if (verbose) print*,'              --- preliminary balance after nitrification '
+      if (verbose) print*,'              ', nbal1
+      if (verbose) print*,'              ', nbal2
+      if (baltest .and. abs(nbal1) > eps) stop 'balance 1 not satisfied'
+      if (baltest .and. abs(nbal2) > eps) stop 'balance 2 not satisfied'
 
 
       !///////////////////////////////////////////////////////////////////////

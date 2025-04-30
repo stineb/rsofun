@@ -54,7 +54,7 @@ contains
 
       case default
 
-        ! stop 'FTEMP: select valid method'
+        ftemp = 1.0
 
     end select
 
@@ -86,7 +86,7 @@ contains
 
       case default
 
-        ! stop 'FMOIST: select valid method'
+        fmoist = 1.0
 
     end select
 

@@ -43,7 +43,6 @@ contains
     integer:: i
     real   :: tair, tsoil  ! temperature of soil, degC
     real   :: theta        ! soil wetness, unitless
-    integer :: iyears
 
     ! Climatic variable
     tair   = forcing%Tair - 273.16   ! conversion to degC
@@ -2141,7 +2140,6 @@ contains
     type(cohort_type), dimension(:), pointer :: cc
     type(cohort_type), pointer :: cx
     integer,parameter :: rand_seed = 86456
-    real    :: r
     real    :: btotal
     integer :: i, istat
     ! integer :: io           ! i/o status for the namelist
@@ -2213,12 +2211,14 @@ contains
 
       ! Initialize soil volumetric water conent with field capacity (maximum soil moisture to start with)
       vegn%wcl = myinterface%params_tile%FLDCAP  
+
       ! Update soil water
       vegn%SoilWater = 0.0
       do i=1, max_lev
         vegn%SoilWater = vegn%SoilWater + vegn%wcl(i)*thksl(i)*1000.0
       enddo
       vegn%thetaS = 1.0
+
       ! tile
       call summarize_tile( vegn )
       vegn%initialN0 =  vegn%plabl%n%n14 + vegn%pseed%n%n14 + vegn%pleaf%n%n14 +      &

@@ -47,14 +47,13 @@ vegetation_biomee.mod.o: datatypes.mod.o soil_biomee.mod.o gpp_biomee.mod.o
 datatypes.mod.o: interface_biosphere_biomee.mod.o params_core.mod.o classdefs.mod.o
 npp.mod.o: classdefs.mod.o params_core.mod.o interface_biosphere_pmodel.mod.o plant_cnmodel.mod.o tile_cnmodel.mod.o forcing_siterun_pmodel.mod.o turnover.mod.o
 phenology_lpx.mod.o: params_core.mod.o sofunutils.mod.o plant_cnmodel.mod.o tile_cnmodel.mod.o
-nuptake.mod.o: params_core.mod.o classdefs.mod.o tile_cnmodel.mod.o plant_cnmodel.mod.o
-nuptake_simpl.mod.o: params_core.mod.o classdefs.mod.o tile_cnmodel.mod.o plant_cnmodel.mod.o
+nuptake_simpl.mod.o: params_core.mod.o classdefs.mod.o tile_cnmodel.mod.o plant_cnmodel.mod.o npp.mod.o
 turnover.mod.o: params_core.mod.o classdefs.mod.o tile_cnmodel.mod.o plant_cnmodel.mod.o
 landuse.mod.o: params_core.mod.o classdefs.mod.o tile_cnmodel.mod.o plant_cnmodel.mod.o interface_biosphere_pmodel.mod.o
 littersom.mod.o: classdefs.mod.o params_core.mod.o plant_cnmodel.mod.o interface_biosphere_pmodel.mod.o
 ntransform.mod.o: classdefs.mod.o params_core.mod.o tile_cnmodel.mod.o interface_biosphere_pmodel.mod.o rates.mod.o
 ntransform_simpl.mod.o: classdefs.mod.o params_core.mod.o tile_cnmodel.mod.o interface_biosphere_pmodel.mod.o rates.mod.o
-allocation_cnmodel.mod.o: classdefs.mod.o params_core.mod.o tile_cnmodel.mod.o plant_cnmodel.mod.o findroot_fzeroin.mod.o interface_biosphere_pmodel.mod.o gpp_pmodel.mod.o nuptake.mod.o npp.mod.o photosynth_pmodel.mod.o
+allocation_cnmodel.mod.o: classdefs.mod.o params_core.mod.o tile_cnmodel.mod.o plant_cnmodel.mod.o findroot_fzeroin.mod.o interface_biosphere_pmodel.mod.o gpp_pmodel.mod.o nuptake_simpl.mod.o npp.mod.o photosynth_pmodel.mod.o
 sofunutils.mod.o: params_core.mod.o
 
 # Source (object) of Fortran modules
@@ -96,7 +95,6 @@ md_lambertw.mod: lambertw.mod.o
 md_npp.mod: npp.mod.o
 md_phenology.mod: phenology_lpx.mod.o
 md_vegdynamics_cnmodel.mod: vegdynamics_cnmodel.mod.o
-md_nuptake.mod: nuptake.mod.o
 md_nuptake_simpl.mod: nuptake_simpl.mod.o
 md_turnover.mod: turnover.mod.o
 md_landuse.mod: landuse.mod.o

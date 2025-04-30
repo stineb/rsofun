@@ -1,27 +1,27 @@
 module md_gpp_pmodel
   !////////////////////////////////////////////////////////////////
-  ! Module containing a wrapper for using the P-model photosynthesis
   ! scheme in the P-model setup.
   !----------------------------------------------------------------
   use md_params_core, only: nmonth, npft, nlu, c_molmass, h2o_molmass, maxgrid, ndayyear, kTkelvin, dummy
   use md_tile_pmodel, only: tile_type, tile_fluxes_type
   use md_interface_pmodel, only: myinterface
-  use md_forcing_pmodel, only: climate_type, vegcover_type
+  use md_forcing_pmodel, only: climate_type
   use md_plant_pmodel, only: params_pft_plant
   use md_sofunutils, only: radians
   use md_grid, only: gridtype
   use md_photosynth, only: pmodel, zero_pmodel, outtype_pmodel, calc_ftemp_inst_vcmax, calc_ftemp_inst_jmax, &
-    calc_ftemp_inst_rd, calc_kphio_temp, calc_soilmstress
-
+  calc_ftemp_inst_rd, calc_kphio_temp, calc_soilmstress
+  
   implicit none
-
+  
   private
   public params_pft_gpp, gpp, getpar_modl_gpp
-    
+  
   !-----------------------------------------------------------------------
   ! Uncertain (unknown) parameters. Runtime read-in
   !-----------------------------------------------------------------------
   type paramstype_gpp
+  ! Module containing a wrapper for using the P-model photosynthesis
     real :: beta         ! Unit cost of carboxylation (dimensionless)
     real :: soilm_thetastar
     real :: soilm_betao
@@ -42,14 +42,9 @@ module md_gpp_pmodel
   type(paramstype_gpp) :: params_gpp
   type(pftparamstype_gpp), dimension(npft) :: params_pft_gpp
 
-  !----------------------------------------------------------------
-  ! Module-specific state variables
-  !----------------------------------------------------------------
-  real, dimension(npft) :: dassim           ! daily leaf-level assimilation rate (per unit leaf area) [gC/m2/d]
-
 contains
 
-  subroutine gpp( tile, tile_fluxes, co2, climate, vegcover, grid, init, in_ppfd)
+  subroutine gpp( tile, tile_fluxes, co2, climate, init, in_ppfd)
     !//////////////////////////////////////////////////////////////////
     ! Wrapper function to call to P-model. 
     ! Calculates meteorological conditions with memory based on daily
@@ -65,8 +60,6 @@ contains
     type(tile_fluxes_type), dimension(nlu), intent(inout) :: tile_fluxes
     real, intent(in)    :: co2                               ! atmospheric CO2 (ppm)
     type(climate_type)  :: climate
-    type(vegcover_type) :: vegcover
-    type(gridtype)      :: grid
     logical, intent(in) :: init                              ! is true on the very first simulation day (first subroutine call of each gridcell)
     logical, intent(in) :: in_ppfd                           ! whether to use PPFD from forcing or from SPLASH output
 
@@ -75,7 +68,6 @@ contains
     type(climate_type)   :: climate_acclimation     ! list of climate variables to which P-model calculates acclimated traits
     integer    :: pft
     integer    :: lu
-    real       :: iabs
     real       :: soilmstress
     real       :: kphio_temp          ! quantum yield efficiency after temperature influence
     real       :: tk
@@ -86,10 +78,6 @@ contains
     real, save :: patm_memory
     real, save :: ppfd_memory
 
-    real, save :: tmin_memory     ! for low temperature stress
-
-    ! xxx test
-    real :: a_c, a_j, a_returned, fact_jmaxlim
     integer, save :: count
 
     !----------------------------------------------------------------
@@ -185,10 +173,11 @@ contains
       !----------------------------------------------------------------
       ! Calculate soil moisture stress as a function of soil moisture, mean alpha and vegetation type (grass or not)
       !----------------------------------------------------------------
-      soilmstress = calc_soilmstress( tile(1)%soil%phy%wcont, &
-                                      params_gpp%soilm_thetastar, &
-                                      params_gpp%soilm_betao, &
-                                      params_pft_plant(1)%grass )
+      soilmstress = calc_soilmstress( &
+        tile(1)%soil%phy%wcont, &
+        params_gpp%soilm_thetastar, &
+        params_gpp%soilm_betao &
+        )
 
       !----------------------------------------------------------------
       ! GPP
@@ -489,8 +478,6 @@ contains
     !////////////////////////////////////////////////////////////////
     ! Subroutine reads module-specific parameters from input file.
     !----------------------------------------------------------------
-    ! local variables
-    integer :: pft
 
     !----------------------------------------------------------------
     ! PFT-independent parameters

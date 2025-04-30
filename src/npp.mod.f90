@@ -40,7 +40,6 @@ contains
     integer :: lu
     real :: cavl, creq, frac_avl
     real, parameter :: buffer = 0.9
-    type(orgpool) :: org_resv_to_labl ! organic mass moving from reserves to labile pool (g C[N] m-2 tstep-1)
     real :: f_resv_to_labl
 
     pftloop: do pft=1,npft
@@ -158,46 +157,46 @@ contains
   end subroutine npp
 
 
-  subroutine deactivate_root( mygpp, mydrleaf, myplabl, myproot, rroot, npp, cexu, dtemp, myplitt )
-    !/////////////////////////////////////////////////////////////////////////
-    ! Calculates amount of root mass supportable by (GPP-Rd+Clabl='avl'), so that
-    ! NPP is zero and doesn't get negative. Moves excess from pool 'myproot' to
-    ! pool 'myplitt'.
-    !-------------------------------------------------------------------------
-    ! argument
-    real, intent(in) :: mygpp
-    real, intent(in) :: mydrleaf
-    real, intent(in) :: myplabl
-    type( orgpool ), intent(inout) :: myproot
-    real, intent(out) :: rroot
-    real, intent(out) :: npp
-    real, intent(out) :: cexu
-    real, intent(in) :: dtemp
-    type( orgpool ), intent(inout), optional :: myplitt
+  ! subroutine deactivate_root( mygpp, mydrleaf, myplabl, myproot, rroot, npp, cexu, dtemp, myplitt )
+  !   !/////////////////////////////////////////////////////////////////////////
+  !   ! Calculates amount of root mass supportable by (GPP-Rd+Clabl='avl'), so that
+  !   ! NPP is zero and doesn't get negative. Moves excess from pool 'myproot' to
+  !   ! pool 'myplitt'.
+  !   !-------------------------------------------------------------------------
+  !   ! argument
+  !   real, intent(in) :: mygpp
+  !   real, intent(in) :: mydrleaf
+  !   real, intent(in) :: myplabl
+  !   type( orgpool ), intent(inout) :: myproot
+  !   real, intent(out) :: rroot
+  !   real, intent(out) :: npp
+  !   real, intent(out) :: cexu
+  !   real, intent(in) :: dtemp
+  !   type( orgpool ), intent(inout), optional :: myplitt
     
-    ! local variables
-    real :: croot_trgt
-    real :: droot
-    type( orgpool ) :: rm_turn
+  !   ! local variables
+  !   real :: croot_trgt
+  !   real :: droot
+  !   type( orgpool ) :: rm_turn
 
-    real, parameter :: safety = 0.9999
+  !   real, parameter :: safety = 0.9999
 
-    ! calculate target root mass
-    croot_trgt = safety * ( mygpp - mydrleaf + myplabl) / ( params_plant%r_root + params_plant%exurate )
-    droot      = ( 1.0 - croot_trgt / myproot%c%c12 )
-    rm_turn    = orgfrac( droot, myproot )
-    if (present(myplitt)) then
-      call orgmv( rm_turn, myproot, myplitt )
-    else
-      myproot = orgminus( myproot, rm_turn )
-    end if
+  !   ! calculate target root mass
+  !   croot_trgt = safety * ( mygpp - mydrleaf + myplabl) / ( params_plant%r_root + params_plant%exurate )
+  !   droot      = ( 1.0 - croot_trgt / myproot%c%c12 )
+  !   rm_turn    = orgfrac( droot, myproot )
+  !   if (present(myplitt)) then
+  !     call orgmv( rm_turn, myproot, myplitt )
+  !   else
+  !     myproot = orgminus( myproot, rm_turn )
+  !   end if
 
-    ! update fluxes based on corrected root mass
-    rroot = calc_resp_maint( myproot%c%c12, params_plant%r_root, dtemp )
-    npp   = mygpp - mydrleaf - rroot
-    cexu  = calc_cexu( myproot%c%c12 )     
+  !   ! update fluxes based on corrected root mass
+  !   rroot = calc_resp_maint( myproot%c%c12, params_plant%r_root, dtemp )
+  !   npp   = mygpp - mydrleaf - rroot
+  !   cexu  = calc_cexu( myproot%c%c12 )     
 
-  end subroutine deactivate_root
+  ! end subroutine deactivate_root
 
 
   function calc_resp_maint( cmass, rresp, dtemp ) result( resp_maint )
@@ -207,7 +206,7 @@ contains
     ! use md_gpp, only: calc_tempstress     ! same ramp as for GPP 
 
     ! arguments
-    real, intent(in) :: cmass   ! N mass per unit area [gN/m2]
+    real, intent(in) :: cmass   ! C pool per unit ground area [gC/m2]
     real, intent(in) :: rresp   ! respiration coefficient [gC gC-1 d-1]
     real, intent(in) :: dtemp   ! temperature (soil or air, deg C)
 
@@ -239,18 +238,18 @@ contains
   end function calc_cexu
 
 
-  !/////////////////////////////////////////////////////////////////////////
-  ! Function to increase towards 1 when (damped) CUE approaches 0.
-  !-------------------------------------------------------------------------    
-  function calc_cue_stress( cue ) result( f_deactivate )
-    ! arguments
-    real, intent(in) :: cue
+  ! !/////////////////////////////////////////////////////////////////////////
+  ! ! Function to increase towards 1 when (damped) CUE approaches 0.
+  ! !-------------------------------------------------------------------------    
+  ! function calc_cue_stress( cue ) result( f_deactivate )
+  !   ! arguments
+  !   real, intent(in) :: cue
 
-    ! function return variable
-    real :: f_deactivate
+  !   ! function return variable
+  !   real :: f_deactivate
 
-    f_deactivate = 1.0 / (1.0 + exp(10.0 * (cue + 0.25)))
+  !   f_deactivate = 1.0 / (1.0 + exp(10.0 * (cue + 0.25)))
   
-  end function
+  ! end function
 
 end module md_npp

@@ -199,8 +199,6 @@ contains
                   tile_fluxes(:), &
                   myinterface%pco2, &
                   myinterface%climate(doy), &
-                  myinterface%vegcover(doy), &
-                  myinterface%grid, &
                   init_daily, &
                   myinterface%params_siml%in_ppfd &
                   )
@@ -436,11 +434,7 @@ contains
                            + tile(1)%plant(1)%pseed%n%n14 &
                            - tile_fluxes(1)%plant(1)%dnup%n14
         !----------------------------------------------------------------
-        call allocation(  tile(:), &
-                                tile_fluxes(:),&
-                                myinterface%climate(doy), &
-                                init_daily &
-                                )
+        call allocation( tile(:), tile_fluxes(:), init_daily )
         !----------------------------------------------------------------
         if (verbose) print*, '              ==> returned: '
         if (verbose) print*, '              lai   = ', tile(1)%plant(1)%lai_ind

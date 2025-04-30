@@ -105,7 +105,6 @@ contains
 
     integer :: i
     integer :: init
-    integer :: m
     integer :: nbits
     integer :: niter
 
@@ -333,7 +332,6 @@ contains
     !----------------------------------------------------------------
     integer, intent(out) :: nbits
     real                 :: b
-    integer              :: i
     real                 :: v
 
     nbits = 0

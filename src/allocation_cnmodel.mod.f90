@@ -14,28 +14,6 @@ module md_allocation_cnmodel
   private 
   public allocation, getpar_modl_allocation
 
-  !----------------------------------------------------------------
-  ! Module-specific, private variables
-  !----------------------------------------------------------------
-  type statetype
-    type(orgpool) :: pleaf
-    type(orgpool) :: proot
-    type(orgpool) :: plabl
-    real          :: actnv_unitfapar
-    integer       :: usepft
-    real          :: soiltemp
-    real          :: fpc_grid
-    real          :: vcmax25_unitfapar
-    real          :: nh4
-    real          :: no3
-    real          :: luep
-    real          :: cn
-    real          :: rduf
-    real          :: rrum
-  end type statetype
-
-  type(statetype) :: state
-
   !-----------------------------------------------------------------------
   ! Module-specific model parameters
   !-----------------------------------------------------------------------
@@ -47,27 +25,23 @@ module md_allocation_cnmodel
 
   type( params_allocation_type ) :: params_allocation
 
-  real :: test
-
 contains
 
-  subroutine allocation( tile, tile_fluxes, climate, init )
+  subroutine allocation( tile, tile_fluxes, init )
     !//////////////////////////////////////////////////////////////////
     ! Finds optimal shoot:root growth ratio to balance C:N stoichiometry
     ! of a grass (no wood allocation).
     !------------------------------------------------------------------
-    use md_forcing_cnmodel, only: climate_type
     use md_sofunutils, only: dampen_variability, calc_reg_line
 
     ! arguments
     type(tile_type), dimension(nlu), intent(inout) :: tile
     type(tile_fluxes_type), dimension(nlu), intent(inout) :: tile_fluxes
-    type(climate_type), intent(in) :: climate
     logical, intent(in) :: init
 
     ! local variables
     real :: dcleaf
-    real :: dnleaf
+    real :: dnleaf = 0.0
     real :: dcroot
     real :: dcwood 
     real :: dnwood
@@ -76,27 +50,12 @@ contains
     real :: dnroot
     real :: drgrow
     real :: dclabl
-    integer, save :: count_increasing, count_declining
-    logical, save :: firstcall0 = .true.
-    logical, save :: firstcall1 = .true.
-    logical, save :: firstcall2 = .true.
-    logical, save :: firstcall3 = .true.
-    logical, save :: firstcall4 = .true.
-    logical, save :: firstcall_resv = .true.
-
     integer :: lu
     integer :: pft
-    integer :: idx
-    integer :: usemoy        ! MOY in climate vectors to use for allocation
-    integer :: usedoy        ! DOY in climate vectors to use for allocation
   
     type(orgpool) :: avl
 
-    integer, parameter :: len_resp_vec = 30
-    real, dimension(nlu,npft,len_resp_vec), save :: resp_vec
-    real :: frac_for_resp
-
-    real    :: req, c_req, n_req, c_acq, n_acq
+    real :: req
     logical, save :: firstcall_cnbal = .true.
     integer, parameter :: len_cnbal_vec = 365
 
@@ -111,16 +70,6 @@ contains
     real :: n_con_corr      ! corrected sum of N consumed, after accounting for excess uptake left over from the imbalance of acquisition and utilization over the preceeeding N days
     real, save :: frac_leaf ! fraction of C allocated to leaves
 
-    integer, parameter :: len_luep_vec = ndayyear
-    integer, parameter :: len_rrum_vec = ndayyear
-    integer, parameter :: len_rduf_vec = ndayyear
-    integer, parameter :: len_cn_vec   = ndayyear
-    
-    real, dimension(nlu,npft,len_luep_vec), save :: luep_vec
-    real, dimension(nlu,npft,len_rduf_vec), save :: rduf_vec
-    real, dimension(nlu,npft,len_rrum_vec), save :: rrum_vec
-    real, dimension(nlu,npft,len_cn_vec),   save :: cn_vec
-
     real, parameter :: f_seed = 0.0
     real, parameter :: par_resv = 0.1   ! scales reserves pool (controlling risk avoidance)
     real, parameter :: par_labl = 0.1   ! scales labile pool (controlling risk avoidance)
@@ -129,16 +78,11 @@ contains
     real :: c_labl_target     ! target size of labile pool (g C m-2)
     real :: c_resv_target     ! target size of reserves pool (g C m-2)
     real :: f_resv_to_labl    ! net C flux from reserves to labile pool (g C m-2 tstep-1)
-    real :: cfrac_resv        ! fraction of C pool moving from reserves to labile
-    real :: cfrac_labl        ! fraction of C pool moving from labile to reserves
     type(orgpool) :: org_resv_to_labl ! organic mass moving from reserves to labile pool (g C[N] m-2 tstep-1)
     type(orgpool) :: org_labl_to_resv ! organic mass moving from labile to reserves pool (g C[N] m-2 tstep-1)
 
     real    :: max_dcleaf_n_constraint
     real    :: max_dcroot_n_constraint
-
-    ! xxx debug
-    real :: tmp
 
     ! xxx verbose
     logical, parameter :: verbose = .true.
@@ -228,7 +172,6 @@ contains
           if (dcwood > 0.0) then
 
             call allocate_wood( &
-              pft, &
               dcwood, &
               dnroot, &
               tile(lu)%plant(pft)%pwood%c%c12, &
@@ -237,7 +180,7 @@ contains
               tile(lu)%plant(pft)%plabl%n%n14, &
               tile_fluxes(lu)%plant(pft)%drgrow, &
               myinterface%steering%closed_nbal, &
-              tile_fluxes(lu)%plant(pft)%dnup_fix &
+              tile_fluxes(lu)%plant(pft)%dnfix%n14 &
               )
 
           end if
@@ -259,7 +202,7 @@ contains
               tile(lu)%plant(pft)%lai_ind, &
               dnleaf, &
               myinterface%steering%closed_nbal, &
-              tile_fluxes(lu)%plant(pft)%dnup_fix &
+              tile_fluxes(lu)%plant(pft)%dnfix%n14 &
               )
 
             !-------------------------------------------------------------------  
@@ -275,7 +218,7 @@ contains
               ! stop 'labile N got negative'
               req = 2.0 * abs(tile(lu)%plant(pft)%plabl%n%n14) ! give it a bit more (factor 2)
               tile_fluxes(lu)%plant(pft)%dnup%n14 = tile_fluxes(lu)%plant(pft)%dnup%n14 + req
-              tile_fluxes(lu)%plant(pft)%dnup_fix = tile_fluxes(lu)%plant(pft)%dnup_fix + req
+              tile_fluxes(lu)%plant(pft)%dnfix%n14 = tile_fluxes(lu)%plant(pft)%dnfix%n14 + req
               tile(lu)%plant(pft)%plabl%n%n14 = tile(lu)%plant(pft)%plabl%n%n14 + req
             end if
 
@@ -291,9 +234,9 @@ contains
 
             ! Allocate to temporary pool (palcb) which supplies root growth or N fixation.
             call orgmv( &
-              orgpool(carbon = dcroot, nitrogen = dnroot), 
-              tile(lu)%plant(pft)%plabl, 
-              tile(lu)%plant(pft)%palcb
+              orgpool(carbon(dcroot), nitrogen(dnroot)), &
+              tile(lu)%plant(pft)%plabl, &
+              tile(lu)%plant(pft)%palcb &
               )
             
             ! Get C (and N) available for root construction (or BNF if PFT is capable of BNF)
@@ -304,7 +247,6 @@ contains
 
             ! second, construct roots, drawing from temporary pool (palcb)
             call allocate_root( &
-              pft, &
               dproot%c%c12, &
               dproot%n%n14, &
               tile(lu)%plant(pft)%proot%c%c12, &
@@ -313,18 +255,17 @@ contains
               tile(lu)%plant(pft)%palcb%n%n14, &
               tile_fluxes(lu)%plant(pft)%drgrow, &
               myinterface%steering%closed_nbal, &
-              tile_fluxes(lu)%plant(pft)%dnup_fix &
+              tile_fluxes(lu)%plant(pft)%dnfix%n14 &
               )
-
 
             !-------------------------------------------------------------------  
             ! If labile N gets negative, account gap as N fixation
             !-------------------------------------------------------------------  
             if ( tile(lu)%plant(pft)%plabl%n%n14 < 0.0 ) then
-              ! stop 'labile N got negative'
+              print*,'labile N got negative'
               req = 2.0 * abs(tile(lu)%plant(pft)%plabl%n%n14) ! give it a bit more (factor 2)
               tile_fluxes(lu)%plant(pft)%dnup%n14 = tile_fluxes(lu)%plant(pft)%dnup%n14 + req
-              tile_fluxes(lu)%plant(pft)%dnup_fix = tile_fluxes(lu)%plant(pft)%dnup_fix + req
+              tile_fluxes(lu)%plant(pft)%dnfix%n14 = tile_fluxes(lu)%plant(pft)%dnfix%n14 + req
               tile(lu)%plant(pft)%plabl%n%n14 = tile(lu)%plant(pft)%plabl%n%n14 + req
             end if
 
@@ -345,6 +286,8 @@ contains
           dnleaf = 0.0
           dnroot = 0.0
           drgrow = 0.0
+          dcwood = 0.0
+          dnwood = 0.0
 
       end if
 
@@ -356,9 +299,9 @@ contains
 
         g_net_vec(lu,pft,:) = tile_fluxes(lu)%plant(pft)%dgpp - tile_fluxes(lu)%plant(pft)%drd
         r_rex_vec(lu,pft,:) = tile_fluxes(lu)%plant(pft)%drroot &
-                              + tile_fluxes(lu)%plant(pft)%drsapw &
-                              + tile_fluxes(lu)%plant(pft)%dcex
-        n_acq_vec(lu,pft,:) = tile_fluxes(lu)%plant(pft)%dnup%n14 + tile_fluxes(lu)%plant(pft)%dnup_fix%n14
+          + tile_fluxes(lu)%plant(pft)%drsapw &
+          + tile_fluxes(lu)%plant(pft)%dcex
+        n_acq_vec(lu,pft,:) = tile_fluxes(lu)%plant(pft)%dnup%n14 + tile_fluxes(lu)%plant(pft)%dnfix%n14
         c_a_l_vec(lu,pft,:) = dcleaf
         c_a_r_vec(lu,pft,:) = dcroot
         c_a_s_vec(lu,pft,:) = dcseed
@@ -378,8 +321,8 @@ contains
 
         g_net_vec(lu,pft,len_cnbal_vec) = tile_fluxes(lu)%plant(pft)%dgpp - tile_fluxes(lu)%plant(pft)%drd
         r_rex_vec(lu,pft,len_cnbal_vec) = tile_fluxes(lu)%plant(pft)%drroot &
-                                          + tile_fluxes(lu)%plant(pft)%drsapw &
-                                          + tile_fluxes(lu)%plant(pft)%dcex
+          + tile_fluxes(lu)%plant(pft)%drsapw &
+          + tile_fluxes(lu)%plant(pft)%dcex
         n_acq_vec(lu,pft,len_cnbal_vec) = tile_fluxes(lu)%plant(pft)%dnup%n14
         c_a_l_vec(lu,pft,len_cnbal_vec) = dcleaf
         c_a_r_vec(lu,pft,len_cnbal_vec) = dcroot
@@ -416,7 +359,7 @@ contains
       ! determine balance (fraction of allocation to leaves)
       ! psi_c * x * growtheff * c_avl / (psi_n * (1-x) * growtheff * c_avl) = c_consumed / (n_consumed - n_excess)
       ! => solve for x (frac_leaf below)
-      ! c_consumed is c_req; n_consumed is n_con
+      ! c_consumed is c_con; n_consumed is n_con
       if ( myinterface%steering%dofree_alloc ) then
         ! frac_leaf = 1.0 / (psi_c * n_con_corr / (psi_n * c_con) + 1.0)
 
@@ -553,7 +496,7 @@ contains
 
     ! local variables
     real :: nleaf0
-    real :: dclabl, dnlabl
+    real :: dclabl
 
     ! xxx debug
     real :: cleaf0
@@ -613,7 +556,7 @@ contains
   end subroutine allocate_leaf
 
 
-  subroutine allocate_root( pft, mydcroot, mydnroot, croot, nroot, clabl, nlabl, rgrow, closed_nbal, nfix )
+  subroutine allocate_root( mydcroot, mydnroot, croot, nroot, clabl, nlabl, rgrow, closed_nbal, nfix )
     !///////////////////////////////////////////////////////////////////
     ! ROOT ALLOCATION
     ! Sequence of steps:
@@ -622,7 +565,6 @@ contains
     ! - update labile C and N
     !-------------------------------------------------------------------
     ! arguments
-    integer, intent(in) :: pft
     real, intent(in)   :: mydcroot
     real, intent(in)   :: mydnroot
     real, intent(inout) :: croot, nroot
@@ -672,7 +614,7 @@ contains
   end subroutine allocate_root
 
 
-  subroutine allocate_wood( pft, mydcwood, mydnwood, cwood, nwood, clabl, nlabl, rgrow, closed_nbal, nfix )
+  subroutine allocate_wood( mydcwood, mydnwood, cwood, nwood, clabl, nlabl, rgrow, closed_nbal, nfix )
     !///////////////////////////////////////////////////////////////////
     ! WOOD ALLOCATION
     ! Sequence of steps:
@@ -681,7 +623,6 @@ contains
     ! - update labile C and N
     !-------------------------------------------------------------------
     ! arguments
-    integer, intent(in) :: pft
     real, intent(in)   :: mydcwood
     real, intent(in)   :: mydnwood
     real, intent(inout) :: cwood, nwood
@@ -730,24 +671,24 @@ contains
   end subroutine allocate_wood
 
 
-  function calc_ft_growth( xx ) result( yy )
-    !////////////////////////////////////////////////////////////////
-    ! Temperature limitation function to growth. Increases from around 
-    ! 0 at 0 deg C to 1 at around 10 deg C. The factor scales the 
-    ! amount of C that becomes available for growth.
-    !----------------------------------------------------------------
-    ! arguments
-    real, intent(in) :: xx  ! air temperature (deg C)
+  ! function calc_ft_growth( xx ) result( yy )
+  !   !////////////////////////////////////////////////////////////////
+  !   ! Temperature limitation function to growth. Increases from around 
+  !   ! 0 at 0 deg C to 1 at around 10 deg C. The factor scales the 
+  !   ! amount of C that becomes available for growth.
+  !   !----------------------------------------------------------------
+  !   ! arguments
+  !   real, intent(in) :: xx  ! air temperature (deg C)
 
-    ! function return variable
-    real :: yy
+  !   ! function return variable
+  !   real :: yy
 
-    yy = 1.0 / (1.0 + exp(-1.0 * (xx - 5.0)))
+  !   yy = 1.0 / (1.0 + exp(-1.0 * (xx - 5.0)))
 
-    ! ! xxx try turn off temperature limitation on growth
-    ! yy = 1.0
+  !   ! ! xxx try turn off temperature limitation on growth
+  !   ! yy = 1.0
 
-  end function calc_ft_growth
+  ! end function calc_ft_growth
 
 
   function calc_l2r(c_labl, c_resv, c_labl_target, c_resv_target, f_max) result( out )

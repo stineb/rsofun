@@ -36,12 +36,41 @@ contains
     type(tile_fluxes_type), dimension(nlu), intent(inout) :: tile_fluxes
     real :: aprec         ! annual total precipitation [mm/d] 
     type(landuse_type), intent(in) :: landuse
-    integer :: doy
+    real, optional :: aprec         ! annual total precipitation [mm/d] 
+    integer, optional :: doy
 
     ! local variables
     real :: n_gasloss
     real :: ftemp_nloss
     integer :: lu
+    
+    if (present(aprec) .and. present(doy)) then
+      if ( doy == 1 ) then
+        !///////////////////////////////////////////////////////////////////////
+        ! ANNUAL INITIALIZATION 
+        !-----------------------------------------------------------------------
+        ! Calculate soil PH using empirical relationship with annual precip
+        ! Eq.5, Tab.5, XP08 (ntransform.cpp:65) (c++:aprec in mm/yr; F: mm/yr)
+        !------------------------------------------------------------------
+        ph_soil = 3810.0 / (762.0 + aprec) + 3.8
+
+        ! Deprotonation of NH4 to NH3 depends on soil pH
+        !------------------------------------------------------------------
+        if (ph_soil > 6.0) then
+          nh3max = 1.0
+        else
+          nh3max = 0.00001
+        endif
+        
+      end if
+
+    else
+
+      doy = dummy
+      aprec = dummy
+      nh3max = 0.0
+
+    end if
     
 
     ! LOOP OVER GRIDCELL LAND UNITS

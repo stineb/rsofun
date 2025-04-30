@@ -159,10 +159,11 @@ module md_plant_cnmodel
     type(orgpool) :: dlabl     ! labile turnover, doesn't appear as NPP, therefore needs to be accounted for separately [gC/m2/d]
     
     type(carbon)   :: dnpp     ! daily net primary production (gpp-ra, npp=bp+cex) [gC/m2/d]
-    type(nitrogen) :: dnup     ! daily N uptake [gN/m2/d]
 
-    real :: dnup_fix          ! daily N uptake by plant symbiotic N fixation [gN/m2/d]
-    real :: dnup_res          ! daily N resorption [gN/m2/d]
+    type(nitrogen) :: dnacq    ! daily total N acquisition (sum of root uptake and fixation) [gN/m2/d]
+    type(nitrogen) :: dnup     ! daily root N uptake [gN/m2/d]
+    type(nitrogen) :: dnres    ! daily N resorption [gN/m2/d]
+    type(nitrogen) :: dnfix    ! daily N acquisition by plant symbiotic N fixation [gN/m2/d]
 
     real :: vcmax25           ! acclimated Vcmax, normalised to 25 deg C (mol CO2 m-2 s-1)
     real :: jmax25            ! acclimated Jmax, normalised to 25 deg C (mol CO2 m-2 s-1)
@@ -546,9 +547,6 @@ contains
     ! arguments
     character(len=*), intent(in) :: pftname
 
-    ! local variables
-    real :: lu_category_prov = 0   ! land use category associated with PFT (provisional)
-
     ! function return variable
     type( params_pft_plant_type ) :: out_getpftparams
 
@@ -768,10 +766,6 @@ contains
     plant_fluxes(:)%drsapw = 0.0
     plant_fluxes(:)%drgrow = 0.0
     plant_fluxes(:)%dcex = 0.0
-    plant_fluxes(:)%dnup_pas = 0.0
-    plant_fluxes(:)%dnup_act = 0.0
-    plant_fluxes(:)%dnup_fix = 0.0
-    plant_fluxes(:)%dnup_res = 0.0
     plant_fluxes(:)%vcmax25 = 0.0
     plant_fluxes(:)%jmax25 = 0.0
     plant_fluxes(:)%vcmax = 0.0
@@ -782,15 +776,19 @@ contains
     plant_fluxes(:)%asat = 0.0
     plant_fluxes(:)%lue = 0.0
     plant_fluxes(:)%vcmax25_unitfapar = 0.0
+    plant_fluxes(:)%debug1 = 0.0
+    plant_fluxes(:)%debug2 = 0.0
+    plant_fluxes(:)%debug3 = 0.0
+    plant_fluxes(:)%debug4 = 0.0
 
     do pft=1,npft
       call orginit( plant_fluxes(pft)%dharv )
-      ! call orginit( plant_fluxes(pft)%alloc_leaf )
-      ! call orginit( plant_fluxes(pft)%alloc_root )
-      ! call orginit( plant_fluxes(pft)%alloc_sapw )
-      ! call orginit( plant_fluxes(pft)%alloc_wood )
+      call orginit( plant_fluxes(pft)%dlabl )
       call cinit(   plant_fluxes(pft)%dnpp )
-      call ninit(   plant_fluxes(pft)%dnup )
+      call ninit( plant_fluxes(pft)%dnacq )
+      call ninit( plant_fluxes(pft)%dnup  )
+      call ninit( plant_fluxes(pft)%dnres )
+      call ninit( plant_fluxes(pft)%dnfix )
       call orginit( plant_fluxes(pft)%npp_leaf )
       call orginit( plant_fluxes(pft)%npp_root )
       call orginit( plant_fluxes(pft)%npp_wood )

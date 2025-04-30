@@ -101,14 +101,12 @@ contains
     real :: gs_setpoint         ! stomatal conductance to CO2 (mol CO2 Pa-1 m-2 s-1)
     real :: ci                  ! leaf-internal partial pressure, (Pa)
     real :: chi                 ! = ci/ca, leaf-internal to ambient CO2 partial pressure, ci/ca (unitless)
-    real :: xi = 0              ! relative cost parameter, Eq. 9 in Stocker et al., 2019
     real :: ns                  ! viscosity of H2O at ambient temperatures (Pa s)
     real :: ns25                ! viscosity of H2O at 25 deg C (Pa s)
     real :: ns_star             ! viscosity correction factor (unitless)
     real :: mprime              ! factor in light use model with Jmax limitation
     real :: iwue                ! intrinsic water use efficiency = A / gs = ca - ci = ca ( 1 - chi ) , unitless
     real :: lue                 ! light use efficiency (mol CO2 / mol photon)
-    real :: gpp                 ! gross primary productivity (g CO2 m-2 d-1)
     real :: jmax                ! canopy-level maximum rate of electron transport (XXX)
     real :: jmax25              ! canopy-level maximum rate of electron transport (XXX)
     real :: vcmax               ! canopy-level maximum carboxylation capacity per unit ground area (mol CO2 m-2 s-1)
@@ -118,16 +116,11 @@ contains
     real :: vcmax25_unitiabs    ! Vcmax25 per unit absorbed light (mol CO2 m-2 s-1 mol-1)
     real :: ftemp_inst_vcmax    ! Instantaneous temperature response factor of Vcmax (unitless)
     real :: ftemp_inst_jmax     ! Instantaneous temperature response factor of Jmax (unitless)
-    real :: rd                  ! Dark respiration (mol CO2 m-2 s-1)
-    real :: rd_unitiabs         ! Dark respiration per unit absorbed light (mol CO2 m-2 s-1)
-    ! real :: actnv               ! Canopy-level total metabolic leaf N per unit ground area (g N m-2)
-    ! real :: actnv_unitiabs      ! Metabolic leaf N per unit absorbed light (g N m-2 mol-1)
     real :: fact_jmaxlim        ! Jmax limitation factor (unitless)
-    ! real :: transp              ! Canopy-level total transpiration rate (g H2O (mol photons)-1)
     real :: asat                ! Light-saturated assimilation rate (mol CO2 m-2 s-1)
 
     ! local variables for Jmax limitation following Nick Smith's method
-    real :: omega, omega_star, vcmax_unitiabs_star, tcref, jmax_over_vcmax, jmax_prime
+    real :: omega, omega_star, tcref, jmax_over_vcmax, jmax_prime
 
     real, parameter :: theta = 0.85          ! used only for smith19 setup
     real, parameter :: c_cost = 0.05336251   ! used only for smith19 setup
@@ -299,6 +292,10 @@ contains
     else
 
       ! stop 'PMODEL: select valid method'
+      mprime = dummy
+      lue = dummy
+      vcmax = dummy
+      vcmax_unitiabs = dummy
 
     end if
 
@@ -701,7 +698,7 @@ contains
   end function calc_gammastar
 
 
-  function calc_soilmstress( wcont, thetastar, betao, isgrass ) result( outstress )
+  function calc_soilmstress( wcont, thetastar, betao ) result( outstress )
     !//////////////////////////////////////////////////////////////////
     ! Calculates empirically-derived stress (fractional reduction in light 
     ! use efficiency) as a function of soil moisture
@@ -713,7 +710,6 @@ contains
     real, intent(in) :: wcont                 ! soil water content (mm)
     real, intent(in) :: thetastar             ! threshold of water limitation (mm), previously 0.6 * whc_rootzone
     real, intent(in) :: betao                 ! soil water stress at zero water rootzone water content
-    logical, intent(in), optional :: isgrass  ! vegetation cover information to distinguish sensitivity to low soil moisture
 
     ! local variables
     real :: shape_parameter

@@ -462,8 +462,7 @@ contains
                                           forcing, &
                                           myinterface%steering%climateyear_idx, &
                                           myinterface%params_siml%in_ppfd,  &
-                                          myinterface%params_siml%in_netrad, &
-                                          myinterface%grid%elv &
+                                          myinterface%params_siml%in_netrad &
                                           )
 
       ! Get annual, gobally uniform CO2

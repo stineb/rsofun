@@ -75,11 +75,9 @@ contains
     real :: ntoc_crit                               ! critical N:C ratio below which immobilisation occurrs  
     real :: nreq                                    ! N required in litter decomposition to maintain SOM C:N
     real :: nfix                                    ! temporary variable, N fixation implied in litter decomposition,
-    real :: rest                                    ! temporary variable
     real :: req                                     ! N required for litter decomposition 
     real :: avl                                     ! mineral N available as inorganic N
     real :: netmin_litt                             ! net N mineralisation from litter decomposition
-    real :: netmin_soil                             ! net N mineralisation from soil decomposition
 
     integer, save :: ncall = 0                 ! internally counted simulation year
 
@@ -89,9 +87,6 @@ contains
     real, dimension(nlu), save :: mean_ksoil_fs
 
     real :: ntoc_save_fs, ntoc_save_sl
-
-    ! xxx debug
-    real :: nbal1, nbal2
 
     !-------------------------------------------------------------------------
     ! Count number of calls (one for each simulation year)
@@ -254,7 +249,7 @@ contains
         ! et al. (2008) and Xu-Ri & Prentice (2014).
         !----------------------------------------------------------------    
         ! CARBON LITTER -> SOIL TRANSFER
-        !----------------------------------------------------------------    
+        !----------------------------------------------------------------
         ! record N:C ratio to override later (compensating for numerical imprecision)
         ntoc_save_fs = ntoc( tile(lu)%soil%psoil_fs, default = 0.0 )
         ntoc_save_sl = ntoc( tile(lu)%soil%psoil_sl, default = 0.0 )
@@ -380,6 +375,12 @@ contains
         !   write(0,*) 'psoil_sl', cton( tile(lu)%soil%psoil_sl )
         !   stop 'B sl: C:N not ok'
         ! end if
+
+      else
+
+        eff = dummy
+        ntoc_save_fs = 0.0
+        ntoc_save_sl = 0.0
 
       end if
 
